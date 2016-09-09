@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "",
+  "Description": "This template creates subnets, route tables, and NACLs for the internal-private network tier",
   "Parameters": {
     "CostCenter": {
       "Description": "CostCenter tag value",
@@ -468,13 +468,13 @@
             "Value": {
               "Ref": "CostCenter"
             }
-          }
+          },
           {
             "Key": "Environment",
             "Value": {
               "Ref": "VPCName"
             }
-          }
+          },
           {
             "Key": "Name",
             "Value": "internal_private_nacl_1"

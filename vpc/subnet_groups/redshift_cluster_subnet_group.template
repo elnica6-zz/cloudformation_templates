@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "",
+  "Description": "This template creates a Redshift Cluster subnet group for the internal-private network tier",
   "Parameters": {
     "InternalPrivateSubnet1ID": {
       "Description": "subnet ID for internal private subnet 1 located in Availability Zone 1",

@@ -1,19 +1,18 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "",
+  "Description": "This template creates subnets, route tables, NACLs, and NAT Gateways for the public network tier",
   "Parameters": {
     "CostCenter": {
       "Description": "CostCenter tag value",
       "Type": "String"
     },
+    "InternetGatewayID": {
+      "Description": "Internet Gateway ID",
+      "Type": "String"
+    },
     "NumberOfAZs": {
       "Description": "Number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.",
-      "Type": "String",
-      "AllowedValues": [
-        "2",
-        "3",
-        "4"
-      ]
+      "Type": "String"
     },
     "Owner": {
       "Description": "Owner tag value",
@@ -103,7 +102,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_subnet_1"
           },
@@ -149,7 +149,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_subnet_2"
           },
@@ -196,7 +197,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_subnet_3"
           },
@@ -243,7 +245,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_subnet_4"
           },
@@ -278,7 +281,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_route_table_1"
           },
@@ -293,6 +297,18 @@
             }
           }
         ]
+      }
+    },
+    "PublicSubnet1InternetRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGatewayID"
+        },
+        "RouteTableId": {
+          "Ref": "PublicSubnet1RouteTable"
+        }
       }
     },
     "PublicSubnet1RouteTableAssociation": {
@@ -324,7 +340,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_route_table_2"
           },
@@ -339,6 +356,18 @@
             }
           }
         ]
+      }
+    },
+    "PublicSubnet2InternetRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGatewayID"
+        },
+        "RouteTableId": {
+          "Ref": "PublicSubnet2RouteTable"
+        }
       }
     },
     "PublicSubnet2RouteTableAssociation": {
@@ -371,7 +400,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_route_table_3"
           },
@@ -386,6 +416,19 @@
             }
           }
         ]
+      }
+    },
+    "PublicSubnet3InternetRoute": {
+      "Condition": "3AZCondition",
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGatewayID"
+        },
+        "RouteTableId": {
+          "Ref": "PublicSubnet3RouteTable"
+        }
       }
     },
     "PublicSubnet3RouteTableAssociation": {
@@ -419,7 +462,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "public_route_table_4"
           },
@@ -434,6 +478,19 @@
             }
           }
         ]
+      }
+    },
+    "PublicSubnet4InternetRoute": {
+      "Condition": "4AZCondition",
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGatewayID"
+        },
+        "RouteTableId": {
+          "Ref": "PublicSubnet4RouteTable"
+        }
       }
     },
     "PublicSubnet4RouteTableAssociation": {
@@ -460,13 +517,13 @@
             "Value": {
               "Ref": "CostCenter"
             }
-          }
+          },
           {
             "Key": "Environment",
             "Value": {
               "Ref": "VPCName"
             }
-          }
+          },
           {
             "Key": "Name",
             "Value": "public_nacl_1"

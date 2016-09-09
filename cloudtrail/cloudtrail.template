@@ -1,39 +1,151 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Stack to enable CloudTrail in every region of a given AWS account as well as create S3 bucket to log to",
+  "Description": "This template enables CloudTrail in every region of a given AWS account and creates an S3 bucket for CloudTrail send logs to",
   "Parameters": {
-    "BucketName": {
+    "CostCenter": {
+      "Description": "CostCenter tag value",
       "Type": "String",
-      "Description": "S3 bucket name",
-      "Default": "cloudtrail"
+      "Default": "12345"
     },
     "Owner": {
+      "Description": "owner tag value",      
       "Type": "String",
-      "Description": "owner tag value",
-      "Default": "bendanah@amazon.com"
+      "Default": "me@myemail.com"
     },
-    "Service": {
+    "S3BucketName": {
       "Type": "String",
-      "Description": "service tag value",
-      "Default": "cloudtrail"
+      "Description": "S3 bucket name",
+      "Default": "myprivatecloudtrails3bucket"
+    },
+    "S3BucketOriginRegion": {
+      "Description": "Region where S3 bucket originates from",
+      "Type": "String",
+      "Default": "us-west-2"
     }
   },
-  "Mappings": {},
+  "Conditions": {
+    "S3BucketOriginRegionCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "S3BucketOriginRegion"
+        },
+        {
+          "Ref": "AWS::Region"
+        }
+      ]
+    }
+  },
   "Resources": {
     "CloudTrailS3Bucket": {
+      "Condition": "S3BucketOriginRegionCondition",
+      "DeletionPolicy": "Retain",
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "BucketName" : {
-          "Ref": "BucketName"
+          "Ref": "S3BucketName"
         },
-        "Tags" : [
+        "Tags": [
           {
-            "Key": "owner",
-            "Value": "bendanah@amazon.com"
+            "Key": "CostCenter",
+            "Value": {
+              "Ref": "CostCenter"
+            }
           },
           {
-            "Key": "service",
-            "Value": "cloudtrail"
+            "Key": "Owner",
+            "Value": {
+              "Ref": "Owner"
+            }
+          }
+        ]
+      }
+    },
+    "CloudTrailS3BucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "CloudTrailS3Bucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AWSCloudTrailAclCheck",
+              "Effect": "Allow",
+              "Principal": {
+                "Service":"cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:GetBucketAcl",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "CloudTrailS3Bucket"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Sid": "AWSCloudTrailWrite",
+              "Effect": "Allow",
+              "Principal": {
+                "Service":"cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::", 
+                    {
+                      "Ref":"CloudTrailS3Bucket"
+                    }, 
+                    "/AWSLogs/",
+                    {
+                      "Ref":"AWS::AccountId"
+                    },
+                    "/*"
+                  ]
+                ]
+              },
+              "Condition": {
+                "StringEquals": {
+                  "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "MultiRegionCloudTrail": {
+      "DependsOn": [
+        "CloudTrailS3Bucket",
+        "CloudTrailS3BucketPolicy"
+      ],
+      "Type": "AWS::CloudTrail::Trail",
+      "Properties": {
+        "IncludeGlobalServiceEvents": true,
+        "IsLogging": true, 
+        "IsMultiRegionTrail": true,
+        "S3BucketName": {
+          "Ref": "CloudTrailS3Bucket"
+        },
+        "Tags": [
+          {
+            "Key": "CostCenter",
+            "Value": {
+              "Ref": "CostCenter"
+            }
+          },
+          {
+            "Key": "Owner",
+            "Value": {
+              "Ref": "Owner"
+            }
           }
         ]
       }
