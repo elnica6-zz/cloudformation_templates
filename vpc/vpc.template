@@ -58,7 +58,7 @@
   "Mappings": {
     "Static": {
       "All": {
-        "Owner": "bendanah@amazon.com",
+        "Owner": "me@myemail.com",
         "CostCenter": "12345",
         "S3Bucket": "myprivates3bucket",
         "InternalPrivateSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/internal_private_subnets.template",
