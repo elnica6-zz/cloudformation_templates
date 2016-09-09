@@ -1,0 +1,94 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description": "",
+  "Parameters": {
+    "InternalPrivateSubnet1ID": {
+      "Description": "subnet ID for internal private subnet 1 located in Availability Zone 1",
+      "Type": "String"
+    },
+    "InternalPrivateSubnet2ID": {
+      "Description": "subnet ID for internal private subnet 2 located in Availability Zone 2",
+      "Type": "String"
+    },
+    "InternalPrivateSubnet3ID": {
+      "Description": "subnet ID for internal private subnet 3 located in Availability Zone 3",
+      "Type": "String"
+    },
+    "InternalPrivateSubnet4ID": {
+      "Description": "subnet ID for internal private subnet 4 located in Availability Zone 4",
+      "Type": "String"
+    },
+    "NumberOfAZs": {
+      "Description": "Number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.",
+      "Type": "String",
+      "AllowedValues": [
+        "2",
+        "3",
+        "4"
+      ]
+    }
+  },
+  "Conditions": {
+    "3AZCondition": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "NumberOfAZs"
+            },
+            "3"
+          ]
+        },
+        {
+          "Condition": "4AZCondition"
+        }
+      ]
+    },
+    "4AZCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "NumberOfAZs"
+        },
+        "4"
+      ]
+    }
+  },
+  "Resources" : {
+    "InternalPrivateSubnetRedshiftClusterSubnetGroup" : {
+      "Type" : "AWS::Redshift::ClusterSubnetGroup",
+      "Properties" : {
+        "Description" : "Allows Redshift communication between all internal private subnets",
+        "SubnetIds": [
+          {
+            "Ref": "InternalPrivateSubnet1ID"
+          },
+          {
+            "Ref": "InternalPrivateSubnet2ID"
+          },
+          {
+            "Fn::If": [
+              "3AZCondition",
+              {
+                "Ref": "InternalPrivateSubnet3ID"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "4AZCondition",
+              {
+                "Ref": "InternalPrivateSubnet4ID"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

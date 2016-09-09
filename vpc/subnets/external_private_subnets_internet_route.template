@@ -1,0 +1,140 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description": "",
+  "Parameters": {
+    "CostCenter": {
+      "Description": "CostCenter tag value",
+      "Type": "String"
+    },
+    "ExternalPrivateSubnet1RouteTableID": {
+      "Description": "External Private Subnet 1 Route Table ID in Availability Zone 1",
+      "Type": "String"
+    },
+    "ExternalPrivateSubnet2RouteTableID": {
+      "Description": "External Private Subnet 2 Route Table ID in Availability Zone 2",
+      "Type": "String"
+    },
+    "ExternalPrivateSubnet3RouteTableID": {
+      "Description": "External Private Subnet 3 Route Table ID in Availability Zone 3",
+      "Type": "String"
+    },
+    "ExternalPrivateSubnet4RouteTableID": {
+      "Description": "External Private Subnet 4 Route Table ID in Availability Zone 4",
+      "Type": "String"
+    },
+    "NATGateway1ID": {
+      "Description": "NAT Gateway 1 ID in Availability Zone 1",
+      "Type": "String"
+    },
+    "NATGateway2ID": {
+      "Description": "NAT Gateway 2 ID in Availability Zone 2",
+      "Type": "String"
+    },
+    "NATGateway3ID": {
+      "Description": "NAT Gateway 3 ID in Availability Zone 3",
+      "Type": "String"
+    },
+    "NATGateway4ID": {
+      "Description": "NAT Gateway 4 ID in Availability Zone 4",
+      "Type": "String"
+    },
+    "NumberOfAZs": {
+      "Description": "Number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.",
+      "Type": "String",
+      "AllowedValues": [
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "Owner": {
+      "Description": "Owner tag value",
+      "Type": "String"
+    },
+    "VPC": {
+      "Description": "VPC ID",
+      "Type": "String"
+    },
+    "VPCName": {
+      "Description": "VPC Name",
+      "Type": "String"
+    }
+  },
+  "Conditions": {
+    "3AZCondition": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "NumberOfAZs"
+            },
+            "3"
+          ]
+        },
+        {
+          "Condition": "4AZCondition"
+        }
+      ]
+    },
+    "4AZCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "NumberOfAZs"
+        },
+        "4"
+      ]
+    }
+  },
+  "Resources" : {
+    "ExternalPrivateSubnet1InternetRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NATGateway1ID"
+        },
+        "RouteTableId": {
+          "Ref": "ExternalPrivateSubnet1RouteTableID"
+        }
+      }
+    },
+    "ExternalPrivateSubnet2InternetRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NATGateway2ID"
+        },
+        "RouteTableId": {
+          "Ref": "ExternalPrivateSubnet2RouteTableID"
+        }
+      }
+    },
+    "ExternalPrivateSubnet3InternetRoute" : {
+      "Condition": "3AZCondition",
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NATGateway3ID"
+        },
+        "RouteTableId": {
+          "Ref": "ExternalPrivateSubnet3RouteTableID"
+        }
+      }
+    },
+    "ExternalPrivateSubnet4InternetRoute" : {
+      "Condition": "4AZCondition",
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "NATGateway4ID"
+        },
+        "RouteTableId": {
+          "Ref": "ExternalPrivateSubnet4RouteTableID"
+        }
+      }
+    }
+  }
+}

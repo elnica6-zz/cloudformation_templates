@@ -1,0 +1,42 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Stack to enable CloudTrail in every region of a given AWS account as well as create S3 bucket to log to",
+  "Parameters": {
+    "BucketName": {
+      "Type": "String",
+      "Description": "S3 bucket name",
+      "Default": "cloudtrail"
+    },
+    "Owner": {
+      "Type": "String",
+      "Description": "owner tag value",
+      "Default": "bendanah@amazon.com"
+    },
+    "Service": {
+      "Type": "String",
+      "Description": "service tag value",
+      "Default": "cloudtrail"
+    }
+  },
+  "Mappings": {},
+  "Resources": {
+    "CloudTrailS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName" : {
+          "Ref": "BucketName"
+        },
+        "Tags" : [
+          {
+            "Key": "owner",
+            "Value": "bendanah@amazon.com"
+          },
+          {
+            "Key": "service",
+            "Value": "cloudtrail"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates 2 EC2 servers, one in each AZ, by means of a nested stack.",
+  "Parameters": {
+    "Environment": {
+      "Type": "String",
+      "Description": "The environment/vpc name",
+      "AllowedValues": [
+        "lab01",
+        "production01"
+      ]
+    }
+  },
+  "Mappings": {
+    "Static": {
+      "All": {
+        "KeyPairName": "my_keypair",
+        "Owner": "myemail@amazon.com",
+        "CostCenter": "12345",
+        "S3Bucket": "mys3bucket",
+        "NestedStackS3Key": "/cloudformation_templates/nested-stack.template"
+      }
+    },
+    "AWSRegionAMI": {
+      "us-west-2": {
+        "AMI": "ami-abcd1234"
+      }
+    },
+    "EnvironmentConfigs": {
+      "lab01": {
+        "VpcId": "vpc-abcd1234",
+        "Ec2SubnetIdAz1": "subnet-abcd1234",
+        "Ec2SubnetIdAz2": "subnet-efgh5678",
+        "Ec2InstanceType": "t2.micro"
+      },
+      "production01": {
+        "VpcId": "vpc-efgh5678",
+        "Ec2SubnetIdAz1": "subnet-ijkl9012",
+        "Ec2SubnetIdAz2": "subnet-mnop3456",
+        "Ec2InstanceType": "m4.xlarge"
+      }
+    }
+  },
+  "Resources": {
+    "Ec2Server1Az1NestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "NestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "KeyPairName": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "KeyPairName"
+            ]
+          },
+          "Owner": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "Owner"
+            ]
+          },
+          "CostCenter": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "CostCenter"
+            ]
+          },
+          "Name": "MyEc2ServerAz1",
+          "Ec2InstanceType": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "Ec2InstanceType"
+            ]
+          },
+          "Ec2Ami": {
+            "Fn::FindInMap": [
+              "AWSRegionAMI",
+              {
+                "Ref": "AWS::Region"
+              },
+              "AMI"
+              ]
+            },
+          "VpcId": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "VpcId"
+            ]
+          },
+          "Ec2Subnet": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "Ec2SubnetIdAz1"
+            ]
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "Ec2Server2Az2NestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "NestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "KeyPairName": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "KeyPairName"
+            ]
+          },
+          "Owner": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "Owner"
+            ]
+          },
+          "CostCenter": {
+            "Fn::FindInMap": [
+              "Static",
+              "All",
+              "CostCenter"
+            ]
+          },
+          "Name": "MyEc2ServerAz2",
+          "Ec2InstanceType": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "Ec2InstanceType"
+            ]
+          },
+          "Ec2Ami": {
+            "Fn::FindInMap": [
+              "AWSRegionAMI",
+              {
+                "Ref": "AWS::Region"
+              },
+              "AMI"
+              ]
+            },
+          "VpcId": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "VpcId"
+            ]
+          },
+          "Ec2Subnet": {
+            "Fn::FindInMap": [
+              "EnvironmentConfigs",
+              {
+                "Ref": "Environment"
+              },
+              "Ec2SubnetIdAz2"
+            ]
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    }
+  }
+}

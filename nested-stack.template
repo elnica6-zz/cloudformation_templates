@@ -1,0 +1,85 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates an individual EC2 server",
+  "Parameters": {
+    "KeyPairName": {
+      "Type": "String",
+      "Description": "EC2 KeyPair to securely connect to your instance after it launches"
+    },
+    "Owner": {
+      "Type": "String",
+      "Description": "Owner email distribution"
+    },
+    "CostCenter": {
+      "Type": "String",
+      "Description": "Cost center"
+    },
+    "Name": {
+      "Type": "String",
+      "Description": "EC2 name"
+    },
+    "Ec2InstanceType": {
+      "Type": "String",
+      "Description": "EC2 instance type"
+    },
+    "Ec2Ami": {
+      "Type": "String",
+      "Description": "EC2 AMI ID"
+    },
+    "VpcId": {
+      "Type": "String",
+      "Description": "VPC ID"
+    },
+    "Ec2Subnet": {
+      "Type": "String",
+      "Description": "EC2 subnet ID az1"
+    }
+  },
+  "Resources": {
+    "PcDnsServer": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": "20"
+            }
+          }
+        ],
+        "InstanceType": {
+          "Ref": "Ec2InstanceType"
+        },
+        "ImageId": {
+          "Ref": "Ec2Ami"
+        },
+        "KeyName": {
+          "Ref": "KeyPairName"
+        },
+        "SubnetId": {
+          "Ref": "Ec2Subnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "Name"
+            }
+          },
+          {
+            "Key": "CostCenter",
+            "Value": {
+              "Ref": "CostCenter"
+            }
+          },
+          {
+            "Key": "Owner",
+            "Value": {
+              "Ref": "Owner"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

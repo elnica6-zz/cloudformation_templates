@@ -1,0 +1,102 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Sample Template RDS_MYSQL_PIOPS_READREPLICA: Sample template showing how to create an Amazon RDS MySQL Database Instance with provisioned IOPs and a read replica.",
+  "Parameters": {
+    "DBUser": {
+      "NoEcho": "true",
+      "Description": "The database admin account username",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "16",
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+    },
+    "DBPassword": {
+      "NoEcho": "true",
+      "Description": "The database admin account password",
+      "Type": "String",
+      "MinLength": "8",
+      "MaxLength": "41",
+      "AllowedPattern": "[a-zA-Z0-9]*",
+      "ConstraintDescription": "must contain only alphanumeric characters."
+    },
+    "DBSubnetGroupName": {
+      "Description": "",
+      "Type": "String",
+      "Default": "vpclab01-rds-subnetgroup"
+    },
+    "DBSecurityGroup": {
+      "Description": "",
+      "Type": "String",
+      "Default": "sg-a16c7dc7"
+    }
+  },
+  "Resources": {
+    "MasterDB": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "AllocatedStorage": "100",
+        "AllowMajorVersionUpgrade": true,
+        "BackupRetentionPeriod": "7",
+        "DBInstanceClass": "db.m4.large",
+        "DBInstanceIdentifier": "mysql-prod",
+        "DBSubnetGroupName": {
+          "Ref": "DBSubnetGroupName"
+        },
+        "Engine": "mySQL",
+        "Iops": "1000",
+        "MasterUsername": {
+          "Ref": "DBUser"
+        },
+        "MasterUserPassword": {
+          "Ref": "DBPassword"
+        },
+        "MultiAZ": true,
+        "PubliclyAccessible": false,
+        "StorageType": "io1",
+        "VPCSecurityGroups": [
+          {
+            "Ref": "DBSecurityGroup"
+          }
+        ]
+      }
+    },
+    "ReplicaDB": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "SourceDBInstanceIdentifier": {
+          "Ref": "MasterDB"
+        },
+        "DBInstanceClass": {
+          "Ref": "DBInstanceClass"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Read Replica Database"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "MySQLDBEndpoint": {
+      "Description": "DNS endpoint for DB instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "MasterDB",
+          "Endpoint.Address"
+        ]
+      }
+    },
+    "MySQLDBPort": {
+      "Description": "TCP port for DB instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "MasterDB",
+          "Endpoint.Port"
+        ]
+      }
+    }
+  }
+}
