@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "",
+  "Description": "This template creates subnets, route tables, and NACLs for the external-private network tier",
   "Parameters": {
     "CostCenter": {
       "Description": "CostCenter tag value",
@@ -103,7 +103,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_subnet_1"
           },
@@ -149,7 +150,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_subnet_2"
           },
@@ -196,7 +198,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_subnet_3"
           },
@@ -243,7 +246,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_subnet_4"
           },
@@ -278,7 +282,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_route_table_1"
           },
@@ -324,7 +329,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_route_table_2"
           },
@@ -371,7 +377,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_route_table_3"
           },
@@ -419,7 +426,8 @@
             "Value": {
               "Ref": "VPCName"
             }
-          }          {
+          },          
+          {
             "Key": "Name",
             "Value": "external_private_route_table_4"
           },
@@ -460,13 +468,13 @@
             "Value": {
               "Ref": "CostCenter"
             }
-          }
+          },
           {
             "Key": "Environment",
             "Value": {
               "Ref": "VPCName"
             }
-          }
+          },
           {
             "Key": "Name",
             "Value": "external_private_nacl_1"

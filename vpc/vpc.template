@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template creates a Multi-AZ, 3 tiered network (internal-private, external-private, and public subnets) VPC infrastructure with managed NAT gateways in the public subnet for each Availability Zone. You have the option of deploy to either 2 (the default), 3, or 4 Availability Zones.",
+  "Description": "This template creates a Multi-AZ, 3 tiered network (internal-private, external-private, and public subnets) VPC infrastructure with managed NAT gateways in the public subnet for each Availability Zone. It also creates subnet groups in the internal-private tier for ElastiCache, RDS, and Redshift. You have the option of deploy to either 2 (the default), 3, or 4 Availability Zones.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -39,7 +39,7 @@
         "4"
       ],
       "Default": "2",
-      "Description": "Number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.",
+      "Description": "Number of Availability Zones to use in the VPC. Ensure that the Region you are deploying to can support the number of AZs selected!",
       "Type": "String"
     },
     "VPCName": {
@@ -58,7 +58,7 @@
   "Mappings": {
     "Static": {
       "All": {
-        "Owner": "me@myemail.com",
+        "Owner": "bendanah@amazon.com",
         "CostCenter": "12345",
         "S3Bucket": "myprivates3bucket",
         "InternalPrivateSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/internal_private_subnets.template",
@@ -663,6 +663,9 @@
               "CostCenter"
             ]
           },
+          "InternetGatewayID": {
+            "Ref": "InternetGateway"
+          },
           "NumberOfAZs": {
             "Ref": "NumberOfAZs"
           },
@@ -873,7 +876,7 @@
           },
           "VPCName": {
             "Ref": "VPCName"
-          },
+          }
         },
         "TimeoutInMinutes": "5"
       }

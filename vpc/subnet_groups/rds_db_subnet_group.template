@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "",
+  "Description": "This template creates an RDS DB subnet group for the internal-private network tier",
   "Parameters": {
     "CostCenter": {
       "Description": "CostCenter tag value",
@@ -106,7 +106,7 @@
             "Value": {
               "Ref": "CostCenter"
             }
-          }          
+          },          
           {
             "Key": "Environment",
             "Value": {

@@ -1,11 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "",
+  "Description": "This template creates the internet routes for the external-private network tier",
   "Parameters": {
-    "CostCenter": {
-      "Description": "CostCenter tag value",
-      "Type": "String"
-    },
     "ExternalPrivateSubnet1RouteTableID": {
       "Description": "External Private Subnet 1 Route Table ID in Availability Zone 1",
       "Type": "String"
@@ -46,10 +42,6 @@
         "3",
         "4"
       ]
-    },
-    "Owner": {
-      "Description": "Owner tag value",
-      "Type": "String"
     },
     "VPC": {
       "Description": "VPC ID",
