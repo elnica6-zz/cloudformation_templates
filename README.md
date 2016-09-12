@@ -6,7 +6,7 @@ A collection of CloudFormation templates I've crafted over time.
 
 ## Motivation
 
-A short description of the motivation behind the creation and maintenance of the project. This should explain **why** the project exists.
+I use these cloudformation templates for my own development purposes, and I share them frequently with others, so I decided to host them on GitHub to make sharing and improvement easier.
 
 ## Installation
 
