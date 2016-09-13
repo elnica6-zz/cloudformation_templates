@@ -1,0 +1,40 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a CloudWatch Logs Log Group",
+  "Parameters": {
+  	"LogGroupName": {
+  	 "Description": "Log Group Name",
+  	 "Type": "String",
+  	 "Default": "MyLogGroup"
+  	},
+  	"RetentionInDays": {
+  	  "Description": "Log Retention in Days",
+  	  "Type": "Number",
+  	  "Default": 30
+  	}
+  },
+  "Resources": {
+  	"LogGroup": {
+  	  "Type": "AWS::Logs::LogGroup",
+  	  "Properties": {
+  	  	"LogGroupName": {
+  	      "Ref": "LogGroupName"
+  	  	},
+  	  	"RetentionInDays": {
+  	  	  "Ref": "RetentionInDays"
+  	  	}
+  	  }
+  	}
+  },
+  "Outputs": {
+  	"LogGroupArn": {
+	"Description": "Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "LogGroup",
+          "Arn"
+        ]
+      }
+  	}
+  }
+}
