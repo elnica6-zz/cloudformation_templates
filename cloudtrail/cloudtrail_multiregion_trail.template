@@ -1,0 +1,45 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a multi-region CloudTrail Trail",
+  "Parameters": {
+  	"CloudWatchLogsLogGroupArn": {
+  		"Description": "CloudWatch Logs Log Group ARN",
+  		"Type": "String"
+  	},
+   	"CloudWatchLogsRoleArn": {
+  		"Description": "CloudWatch Logs Role ARN",
+  		"Type": "String"
+  	},
+  	"S3BucketName": {
+  	  "Description": "S3 Bucket Name",
+  	  "Type": "String"
+  	}
+  },
+  "Resources": {
+    "MultiRegionTrail": {
+      "Type": "AWS::CloudTrail::Trail",
+      "Properties": {
+      	"CloudWatchLogsLogGroupArn": {
+      		"Ref": "CloudWatchLogsLogGroupArn"
+      	},
+      	"CloudWatchLogsRoleArn": {
+      		"Ref": "CloudWatchLogsRoleArn"
+      	},
+        "IncludeGlobalServiceEvents": true,
+        "IsLogging": true, 
+        "IsMultiRegionTrail": true,
+        "S3BucketName": {
+          "Ref": "S3BucketName"
+        }
+      }
+    }
+  },
+  "Outputs": {
+  	"MultiRegionTrailName": {
+			"Description": "Name of the Trail",
+			"Value": {
+			  "Ref": "MultiRegionTrail"
+			}
+  	}
+  }
+}
