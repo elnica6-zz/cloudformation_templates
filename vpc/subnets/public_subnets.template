@@ -76,12 +76,6 @@
     "PublicSubnet1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "VpcId": {
-          "Ref": "VPC"
-        },
-        "CidrBlock": {
-          "Ref": "PublicSubnet1CIDR"
-        },
         "AvailabilityZone": {
           "Fn::Select": [
             "0",
@@ -89,6 +83,13 @@
               "Fn::GetAZs": ""
             }
           ]
+        },
+        "CidrBlock": {
+          "Ref": "PublicSubnet1CIDR"
+        },
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {
+          "Ref": "VPC"
         },
         "Tags": [
           {
@@ -137,6 +138,7 @@
             }
           ]
         },
+        "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "CostCenter",
@@ -185,6 +187,7 @@
             }
           ]
         },
+        "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "CostCenter",
@@ -233,6 +236,7 @@
             }
           ]
         },
+        "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "CostCenter",

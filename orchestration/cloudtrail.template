@@ -2,16 +2,6 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "This template enables CloudTrail in every region of a given AWS account and creates an S3 bucket for CloudTrail send logs to",
   "Parameters": {
-    "CostCenter": {
-      "Description": "CostCenter tag value",
-      "Type": "String",
-      "Default": "12345"
-    },
-    "Owner": {
-      "Description": "owner tag value",      
-      "Type": "String",
-      "Default": "me@myemail.com"
-    },
     "S3BucketName": {
       "Type": "String",
       "Description": "S3 bucket name",
