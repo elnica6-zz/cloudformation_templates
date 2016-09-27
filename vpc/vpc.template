@@ -17,11 +17,15 @@
             "default": "Network Configuration"
           },
           "Parameters": [
+            "DomainName",
             "VPCName"
           ]
         }
       ],
       "ParameterLabels": {
+        "DomainName": {
+          "default": "VPC Domain Name"
+        },
         "NumberOfAZs": {
           "default": "Number of Availability Zones"
         },
@@ -32,6 +36,11 @@
     }
   },
   "Parameters": {
+    "DomainName": {
+      "Default": "us-west-2.compute.internal",
+      "Description": "VPC Domain Name",
+      "Type": "String"
+    },
     "NumberOfAZs": {
       "AllowedValues": [
         "2",
@@ -178,6 +187,9 @@
     "DHCPOptions": {
       "Type": "AWS::EC2::DHCPOptions",
       "Properties": {
+        "DomainName": {
+          "Ref": "DomainName",
+        },
         "DomainNameServers": [
           "AmazonProvidedDNS"
         ],

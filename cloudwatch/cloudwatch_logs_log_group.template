@@ -27,8 +27,14 @@
   	}
   },
   "Outputs": {
+    "LogGroupResourceName": {
+      "Description": "Log Group Resource Name",
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
   	"LogGroupArn": {
-	"Description": "Log Group ARN",
+      "Description": "Log Group ARN",
       "Value": {
         "Fn::GetAtt": [
           "LogGroup",

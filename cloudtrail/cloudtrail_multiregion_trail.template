@@ -25,6 +25,7 @@
       	"CloudWatchLogsRoleArn": {
       		"Ref": "CloudWatchLogsRoleArn"
       	},
+        "EnableLogFileValidation": true,
         "IncludeGlobalServiceEvents": true,
         "IsLogging": true, 
         "IsMultiRegionTrail": true,

@@ -1,0 +1,109 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates an IAM Role with a CloudTrail Assume Role Policy Document",
+  "Parameters": {
+  	"RoleName": {
+  		"Description": "IAM Role name",
+  		"Type": "String"
+  	},
+  	"ManagedPolicyArns": {
+  		"Description": "ARN of a single Managed Policy. Leave blank to not use Managed Policies",
+  		"Type": "String"
+  	},
+  	"Path": {
+  		"Description": "ARN Path to IAM Role. Leave blank to create at root path",
+  		"Type": "String"
+  	}
+  },
+  "Conditions": {
+  	"ManagedPolicyArnsCondition": {
+  		"Fn::Not": [
+  			{
+  				"Fn::Equals": [
+  					{
+  						"Ref": "ManagedPolicyArns"
+  					},
+  					""
+  				]
+  			}
+  		]
+  	},
+   	"PathCondition": {
+  		"Fn::Not": [
+  			{
+  				"Fn::Equals": [
+  					{
+  						"Ref": "Path"
+  					},
+   					""
+  				]
+  			}
+  		]
+  	}
+  },
+  "Resources": {
+  	"Role": {
+  		"Type": "AWS::IAM::Role",
+  		"Properties": {
+  			"AssumeRolePolicyDocument": {
+  				"Version": "2012-10-17",
+  				"Statement": [
+  					{
+  						"Effect": "Allow",
+  						"Principal": {
+  							"Service": [
+  								"cloudtrail.amazonaws.com"
+  							]
+  						},
+  						"Action": [
+  							"sts:AssumeRole"
+  						]
+  					}
+  				]
+  			},
+  			"ManagedPolicyArns": [
+  				{
+  					"Fn::If": [
+	  					"ManagedPolicyArnsCondition",
+	  					{
+	  						"Ref": "ManagedPolicyArns"
+	  					},
+	  					{
+	  						"Ref": "AWS::NoValue"
+	  					}
+  					]
+  				}
+  			],
+  			"Path": {
+  				"Fn::If": [
+  					"PathCondition",
+  					{
+  						"Ref": "Path"
+  					},
+  					"/"
+  				]
+  			},
+  			"RoleName": {
+  				"Ref": "RoleName"
+  			}
+  		}
+  	}
+  },
+  "Outputs": {
+  	"RoleResourceName": {
+  		"Description": "Role resource name",
+  		"Value": {
+  			"Ref": "Role"
+  		}
+  	},
+  	"RoleArn": {
+  		"Description": "Role ARN",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"Role",
+  				"Arn"
+  			]
+  		}
+  	}
+  }
+}
