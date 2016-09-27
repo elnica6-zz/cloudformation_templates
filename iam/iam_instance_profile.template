@@ -1,0 +1,66 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates an IAM Instance Profile",
+  "Parameters": {
+  	"Path": {
+  		"Description": "ARN Path to IAM Instance Profile. Leave blank to create at root path",
+  		"Type": "String"
+  	},
+   	"Roles": {
+  		"Description": "IAM Role to associate Instance Profile to",
+  		"Type": "String"
+  	}
+  },
+  "Conditions": {
+   	"PathCondition": {
+  		"Fn::Not": [
+  			{
+  				"Fn::Equals": [
+  					{
+  						"Ref": "Path"
+  					},
+   					""
+  				]
+  			}
+  		]
+  	}
+  },
+  "Resources": {
+  	"InstanceProfile": {
+  		"Type": "AWS::IAM::InstanceProfile",
+  		"Properties": {
+  			"Path": {
+  				"Fn::If": [
+  					"PathCondition",
+  					{
+  						"Ref": "Path"
+  					},
+  					"/"
+  				]
+  			},
+  			"Roles": [
+  				{
+  					"Ref": "Roles"
+  				}
+  			]
+  		}
+  	}
+  },
+  "Outputs": {
+  	"InstanceProfileResourceName": {
+  		"Description": "Instance Profile Resource Name",
+  		"Value": {
+  			"Ref": "InstanceProfile"
+  		}
+  	},
+  	"InstanceProfileArn": {
+  		"Description": "Instance Profile ARN",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"InstanceProfile",
+  				"Arn"
+  			]
+  		}
+  	}
+  }
+}

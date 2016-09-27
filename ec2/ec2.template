@@ -1,0 +1,75 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template deploys a single EC2 instance",
+  "Parameters": {
+  	"S3Bucket": {
+  		"Description": "S3 bucket name",
+  		"Type": "String",
+  		"Default": "myprivates3bucket"
+  	},
+  	
+  },
+  "Mappings": {},
+  "Conditions": {},
+  "Resources": {
+  	"instance": {
+			"Type" : "AWS::EC2::Instance",
+			"Metadata": {
+        "AWS::CloudFormation::Authentication": {
+          "S3Access": {
+            "type": "S3",
+            "buckets": [
+              {
+                "Ref": "S3Bucket"
+              }
+            ],
+            "roleName": {
+              "Ref": "BastionHostRole"
+            }
+          }
+        },
+				"AWS::CloudFormation::Init": {
+          "configSets": {
+            "mysql_client": [
+              "mysql_client"
+            ],
+            "oracle_client": [
+              "oracle_client"
+            ],
+            "default": [
+              {
+                "ConfigSet": "mysql_client"
+              },
+              {
+                "ConfigSet": "oracle_client"
+              }
+            ]
+          },
+					"mysql_client": {
+						"packages": {
+							"yum": {
+								"mysql-client": []
+							}
+						}
+					},
+					"oracle_client": {
+						"packages": {
+							"rpm": {
+								"oracle-client": "https://myprivates3bucket.s3.amazonaws.com/software/oracle/oracle-instantclient12.1-basic-12.1.0.2.0-1.x86_64.rpm"
+							}
+						}
+					}
+				}
+			},
+			"Properties" : {
+				"IamInstanceProfile" : String,
+				"ImageId" : String,
+				"InstanceType" : String,
+				"KeyName" : String,
+				"SubnetId" : String,
+				"UserData" : String,
+			}
+		}
+  },
+  "Outputs": {}
+}

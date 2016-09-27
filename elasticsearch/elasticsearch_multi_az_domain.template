@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template deploys a zone aware Elasticsearch Domain with an AWS account level access policy",
+  "Parameters": {
+    "DomainName": {
+      "Description": "Domain Name",
+      "Type": "String"
+    },
+    "InstanceCount": {
+      "Description": "Instance Count",
+      "Type": "Number",
+      "Default": 2
+    },
+    "InstanceType": {
+      "Description": "InstanceType",
+      "Type": "String",
+      "Default": "m3.medium.elasticsearch"
+    }
+  },
+  "Resources": {
+  	"ElasticSearchDomain": {
+  	  "Type": "AWS::Elasticsearch::Domain",
+  	  "Properties": {
+  	  	"AccessPolicies": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:iam::",
+                        {
+                          "Ref": "AWS::AccountId"
+                        },
+                        ":root"
+                      ]
+                    ]
+                  }
+                ]
+              },
+              "Action": "es:*",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:es:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":domain/",
+                    {
+                      "Ref": "DomainName"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+  	  	"DomainName": {
+          "Ref": "DomainName"
+        },
+  	  	"ElasticsearchClusterConfig": {
+          "DedicatedMasterEnabled": "false",
+          "InstanceCount": {
+            "Ref": "InstanceCount"
+          },
+          "InstanceType": {
+            "Ref": "InstanceType"
+          },
+          "ZoneAwarenessEnabled": "true"
+        }
+  	  }
+  	}
+  },
+  "Outputs": {
+    "ElasticsearchDomainResourceName": {
+      "Description": "Elasticsearch Domain Resource Name",
+      "Value": {
+        "Ref": "ElasticSearchDomain"
+      }
+    },
+    "ElasticsearchDomainArn": {
+      "Description": "Elasticsearch Domain Arn",
+      "Value": {
+        "Fn::GetAtt": [
+          "ElasticSearchDomain",
+          "DomainArn"
+        ]
+      }
+    },
+    "ElasticsearchDomainEndpoint": {
+      "Description": "Elasticsearch Domain Endpoint",
+      "Value": {
+        "Fn::GetAtt": [
+          "ElasticSearchDomain",
+          "DomainEndpoint"
+        ]
+      }
+    }
+  }
+}   

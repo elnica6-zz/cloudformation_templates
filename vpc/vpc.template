@@ -17,11 +17,15 @@
             "default": "Network Configuration"
           },
           "Parameters": [
+            "DomainName",
             "VPCName"
           ]
         }
       ],
       "ParameterLabels": {
+        "DomainName": {
+          "default": "VPC Domain Name"
+        },
         "NumberOfAZs": {
           "default": "Number of Availability Zones"
         },
@@ -32,6 +36,11 @@
     }
   },
   "Parameters": {
+    "DomainName": {
+      "Default": "us-west-2.compute.internal",
+      "Description": "VPC Domain Name",
+      "Type": "String"
+    },
     "NumberOfAZs": {
       "AllowedValues": [
         "2",
@@ -67,7 +76,8 @@
         "PublicSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/public_subnets.template",
         "ElastiCacheSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/elasticache_subnet_group.template",
         "RDSDBSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/rds_db_subnet_group.template",
-        "RedshiftClusterSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/redshift_cluster_subnet_group.template"
+        "RedshiftClusterSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/redshift_cluster_subnet_group.template",
+        "RedshiftClusterPublicSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/redshift_cluster_public_subnet_group.template"
       }
     },
     "VPC": {
@@ -177,6 +187,9 @@
     "DHCPOptions": {
       "Type": "AWS::EC2::DHCPOptions",
       "Properties": {
+        "DomainName": {
+          "Ref": "DomainName",
+        },
         "DomainNameServers": [
           "AmazonProvidedDNS"
         ],
@@ -940,6 +953,77 @@
                 "Fn::GetAtt": [
                   "InternalPrivateSubnetsNestedStack",
                   "Outputs.InternalPrivateSubnet4ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "NumberOfAZs": {
+            "Ref": "NumberOfAZs"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "RedshiftClusterPublicSubnetGroupNestedStack": {
+      "DependsOn": "PublicSubnetsNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "RedshiftClusterPublicSubnetGroupNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "PublicSubnet1ID": {
+            "Fn::GetAtt": [
+              "PublicSubnetsNestedStack",
+              "Outputs.PublicSubnet1ID"
+            ]
+          },
+          "PublicSubnet2ID": {
+            "Fn::GetAtt": [
+              "PublicSubnetsNestedStack",
+              "Outputs.PublicSubnet2ID"
+            ]
+          },
+          "PublicSubnet3ID": {
+            "Fn::If": [
+              "3AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PublicSubnetsNestedStack",
+                  "Outputs.PublicSubnet3ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "PublicSubnet4ID": {
+            "Fn::If": [
+              "4AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PublicSubnetsNestedStack",
+                  "Outputs.PublicSubnet4ID"
                 ]
               },
               ""

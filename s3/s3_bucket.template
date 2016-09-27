@@ -1,0 +1,46 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a private S3 bucket with default settings",
+  "Parameters": {
+  	"BucketName": {
+  		"Description": "Name of S3 Bucket",
+  		"Type": "String"
+  	}
+  },
+  "Resources": {
+  	"S3Bucket": {
+  		"Type": "AWS::S3::Bucket",
+  		"Properties": {
+	  		"BucketName": {
+	  			"Ref": "BucketName"
+	  		}
+  		}
+  	}
+  },
+  "Outputs": {
+  	"S3BucketResourceName": {
+  		"Description": "the resource name of the S3 bucket",
+  		"Value": {
+  			"Ref": "S3Bucket"
+  		}
+  	},
+  	"S3BucketDomainName": {
+  		"Description": "the domain name of the S3 bucket",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"S3Bucket",
+  				"DomainName"
+  			]
+  		}
+  	},
+  	"S3BucketWebsiteUrl": {
+  		"Description": "the website URL of the S3 bucket",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"S3Bucket",
+  				"WebsiteURL"
+  			]
+  		}
+  	}
+  }
+}
