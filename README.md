@@ -17,10 +17,15 @@ The "orchestration" folder contains templates that leverage other templates thro
 To use them in your AWS accounts, simply clone this entire repo to a private S3 bucket in your AWS account and maintain the folder structure. For example:
 
 s3://myprivatecloudformationbucket.amazonaws.com/
+
 	cloudformation_templates/
+
 		cloudtrail/
+
 		cloudwatch/
+
 		ec2/
+		
 		.....
 
 
