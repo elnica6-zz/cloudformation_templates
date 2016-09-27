@@ -30,7 +30,7 @@ myprivatecloudformationbucket/
 		.....
 ```
 
-
+Once cloned, simply pass the name of your S3 bucket where the templates are stored to the "CloudFormationS3BucketName" parameter in any of the orchestration templates and you are off to the races!
 
 ## Contributors
 
