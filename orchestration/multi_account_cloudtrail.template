@@ -2,6 +2,11 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "This template enables CloudTrail in every region of a given AWS account and creates an S3 bucket for CloudTrail send logs to",
   "Parameters": {
+    "CloudFormationS3BucketName": {
+      "Default": "mycloudformationbucket",
+      "Description": "S3 bucket name where CloudFormation templates are stored",
+      "Type": "String"
+    },
     "CloudTrailS3BucketName": {
       "Type": "String",
       "Description": "S3 bucket name where CloudTrail logs are stored",
@@ -45,7 +50,6 @@
   "Mappings" :{
     "Static": {
       "All": {
-        "CloudFormationS3BucketName": "myprivates3bucket",
         "CloudTrailNestedStackS3Key": "/cloudformation_templates/cloudtrail/cloudtrail_multiregion_trail.template",
         "CloudWatchLogGroupNestedStackS3Key": "/cloudformation_templates/cloudwatch/cloudwatch_logs_log_group.template",
         "CloudWatchLogRoleNestedStackS3Key": "/cloudformation_templates/iam/iam_cloudtrail_role.template",
@@ -66,11 +70,7 @@
             [
               "https://",
               {
-                "Fn::FindInMap": [
-                  "Static",
-                  "All",
-                  "CloudFormationS3BucketName"
-                ]
+                "Ref": "CloudFormationS3BucketName"
               },
               ".s3.amazonaws.com",
               {
@@ -102,11 +102,7 @@
             [
               "https://",
               {
-                "Fn::FindInMap": [
-                  "Static",
-                  "All",
-                  "CloudFormationS3BucketName"
-                ]
+                "Ref": "CloudFormationS3BucketName"
               },
               ".s3.amazonaws.com",
               {
@@ -136,11 +132,7 @@
             [
               "https://",
               {
-                "Fn::FindInMap": [
-                  "Static",
-                  "All",
-                  "CloudFormationS3BucketName"
-                ]
+                "Ref": "CloudFormationS3BucketName"
               },
               ".s3.amazonaws.com",
               {
@@ -170,11 +162,7 @@
             [
               "https://",
               {
-                "Fn::FindInMap": [
-                  "Static",
-                  "All",
-                  "CloudFormationS3BucketName"
-                ]
+                "Ref": "CloudFormationS3BucketName"
               },
               ".s3.amazonaws.com",
               {
@@ -194,7 +182,7 @@
           "Path": "",
           "RoleName": {
             "Ref": "CloudWatchLogRoleName"
-          },
+          }
         },
         "TimeoutInMinutes": "5"
       }
@@ -214,11 +202,7 @@
             [
               "https://",
               {
-                "Fn::FindInMap": [
-                  "Static",
-                  "All",
-                  "CloudFormationS3BucketName"
-                ]
+                "Ref": "CloudFormationS3BucketName"
               },
               ".s3.amazonaws.com",
               {
