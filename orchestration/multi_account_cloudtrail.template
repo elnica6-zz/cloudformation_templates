@@ -190,9 +190,7 @@
     "CloudTrailNestedStack": {
       "DependsOn": [
         "CloudWatchLogGroupNestedStack",
-        "CloudWatchLogRoleNestedStack",
-        "S3BucketNestedStack",
-        "S3BucketPolicyNestedStack"
+        "CloudWatchLogRoleNestedStack"
       ],
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
