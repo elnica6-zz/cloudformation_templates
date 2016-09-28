@@ -36,8 +36,8 @@
     }
   },
   "Outputs": {
-  	"MultiRegionTrailName": {
-			"Description": "Name of the Trail",
+  	"MultiRegionTrailResourceName": {
+			"Description": "Multi Region Trail Resource Name",
 			"Value": {
 			  "Ref": "MultiRegionTrail"
 			}

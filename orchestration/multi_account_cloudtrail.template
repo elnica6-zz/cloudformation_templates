@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template enables CloudTrail in every region of a given AWS account and creates an S3 bucket for CloudTrail send logs to",
+  "Description": "This template enables CloudTrail in every region of a given AWS account and creates an S3 bucket in the Master account for all Trails to send logs to",
   "Parameters": {
     "CloudFormationS3BucketName": {
       "Default": "mycloudformationbucket",
@@ -235,6 +235,34 @@
     }
   },
   "Outputs": {
+    "CloudTrailS3BucketDomainName": {
+      "Condition": "MasterAccountCondition",
+      "Description": "CloudWatch Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "S3BucketNestedStack",
+          "Outputs.S3BucketDomainName"
+        ]
+      }
+    },
+    "CloudWatchLogsRoleArn": {
+      "Description": "CloudWatch Log Role ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudWatchLogRoleNestedStack",
+          "Outputs.RoleArn"
+        ]
+      }
+    },
+    "CloudTrailResourceName": {
+      "Description": "CloudTrial Resource Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudTrailNestedStack",
+          "Outputs.MultiRegionTrailResourceName"
+        ]
+      }
+    },
     "CloudWatchLogsLogGroupArn": {
       "Description": "CloudWatch Log Group ARN",
       "Value": {
