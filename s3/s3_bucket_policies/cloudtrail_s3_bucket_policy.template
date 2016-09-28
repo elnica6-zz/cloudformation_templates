@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template creates a multi-region CloudTrail Trail",
+  "Description": "This template creates a CloudTrail specific S3 Bucket Policy",
   "Parameters": {
   	"S3Bucket": {
   	  "Description": "S3 Bucket Name",
