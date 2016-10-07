@@ -1,0 +1,71 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a CloudWatch Logs Subscription Filter",
+  "Parameters": {
+  	"DestinationArn": {
+  	 "Description": "ARN of destination Kinesis Stream or Lambda Function",
+  	 "Type": "String"
+  	},
+  	"FilterPattern": {
+  		"Description": "Delivery filtering expression",
+  		"Type": "String"
+  	},
+  	"LogGroupName": {
+  		"Description": "Log Group Name",
+  		"Type": "String"
+  	},
+  	"RoleArn": {
+  		"Description": "IAM Role Arn. Only needed for streaming to Kinesis Stream",
+  		"Type": "String"
+  	}
+  },
+  "Conditions": {
+  	"RoleArnCondition": {
+  		"Fn::Not": [
+  			{
+  				"Fn::Equals": [
+  					{
+  						"Ref": "RoleArn"
+  					},
+  					""
+  				]
+  			}
+  		]
+  	}
+  },
+  "Resources": {
+  	"SubscriptionFilter": {
+		  "Type": "AWS::Logs::SubscriptionFilter",
+		  "Properties": {
+		    "DestinationArn": {
+		    	"Ref": "DestinationArn"
+		    },
+		    "FilterPattern": {
+		    	"Ref": "FilterPattern"
+		    },
+		    "LogGroupName": {
+		    	"Ref": "LogGroupName"
+		    },
+		    "RoleArn": {
+					"Fn::If": [
+  					"RoleArnCondition",
+  					{
+  						"Ref": "RoleArn"
+  					},
+  					{
+  						"Ref": "AWS::NoValue"
+  					}
+					]
+		    }
+		  }
+  	}
+  },
+  "Outputs": {
+    "SubscriptionFilterResourceName": {
+      "Description": "Subscription Filter Resource Name",
+      "Value": {
+        "Ref": "SubscriptionFilter"
+      }
+    }
+  }
+}

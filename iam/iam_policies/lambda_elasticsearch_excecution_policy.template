@@ -1,0 +1,59 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a Lambda to Elasticsearch execution IAM Policy",
+  "Parameters": {
+  	"PolicyName": {
+  		"Default": "lambda_elasticsearch_execution",
+      "Description": "Policy Name",
+  		"Type": "String"
+  	},
+   	"Roles": {
+  		"Description": "IAM Role to attach policy to",
+  		"Type": "String"
+  	}
+  },
+  "Resources": {
+  	"Policy": {
+      "Type" : "AWS::IAM::Policy",
+      "Properties": { 
+        "PolicyName" : {
+          "Ref": "PolicyName"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": [
+                "arn:aws:logs:*:*:*"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": "es:ESHttpPost",
+              "Resource": "arn:aws:es:*:*:*"
+            }
+          ]
+        },
+        "Roles" : [
+          {
+            "Ref": "Roles"
+          }
+        ]
+      }
+  	}
+  },
+  "Outputs": {
+  	"PolicyResourceName": {
+  		"Description": "Policy Resource Name",
+  		"Value": {
+  			"Ref": "Policy"
+  		}
+  	}
+  }
+}

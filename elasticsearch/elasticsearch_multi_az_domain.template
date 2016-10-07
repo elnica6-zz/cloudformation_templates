@@ -1,9 +1,14 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template deploys a zone aware Elasticsearch Domain with an AWS account level access policy",
+  "Description": "This template deploys a zone aware Elasticsearch Domain with 2 nodes (no dedicated masters), 20GB gp2 EBS volumes each, and an AWS account level access policy",
   "Parameters": {
     "DomainName": {
       "Description": "Domain Name",
+      "Type": "String"
+    },
+    "ElasticsearchVersion": {
+      "Default": "2.3",
+      "Description": "Elasticsearch version",
       "Type": "String"
     },
     "InstanceCount": {
@@ -70,15 +75,24 @@
   	  	"DomainName": {
           "Ref": "DomainName"
         },
+        "EBSOptions": {
+          "EBSEnabled": true,
+          "Iops": 0,
+          "VolumeSize": 20,
+          "VolumeType": "gp2"
+        },
   	  	"ElasticsearchClusterConfig": {
-          "DedicatedMasterEnabled": "false",
+          "DedicatedMasterEnabled": false,
           "InstanceCount": {
             "Ref": "InstanceCount"
           },
           "InstanceType": {
             "Ref": "InstanceType"
           },
-          "ZoneAwarenessEnabled": "true"
+          "ZoneAwarenessEnabled": true
+        },
+        "ElasticsearchVersion": {
+          "Ref": "ElasticsearchVersion"
         }
   	  }
   	}
