@@ -1,0 +1,96 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a non-VPC Lambda Function with code residing in an S3 bucket",
+  "Parameters": {
+  	"Description": {
+  		"Description": "Lambda Function Description",
+  		"Type": "String"
+  	},
+  	"FunctionName": {
+  		"Description": "Lambda Funtion Name",
+  		"Type": "String"
+  	},
+  	"Handler": {
+  		"Description": "Handler for function execution",
+  		"Type": "String"
+  	},
+   	"MemorySize": {
+   		"Default": "128",
+  		"Description": "Function memory size",
+  		"Type": "Integer"
+  	},
+  	"Role": {
+  	  "Description": "IAM Role ARN for function execution",
+  	  "Type": "String"
+  	},
+  	"Runtime": {
+  		"Description": "Function runtime",
+  		"Type": "String"
+  	},
+  	"S3Bucket": {
+  		"Description": "S3 Bucket containing function code",
+  		"Type": "String"
+  	},
+   	"S3Key": {
+  		"Description": "S3 object key for function code",
+  		"Type": "String"
+  	},
+  	"Timeout": {
+  		"Description": "Function timeout in seconds",
+  		"Type": "Integer"
+  	}
+  },
+  "Resources": {
+    "Function": {
+		  "Type": "AWS::Lambda::Function",
+		  "Properties": {
+		    "Code": {
+		    	"S3Bucket": {
+		    		"Ref": "S3Bucket"
+		    	},
+		    	"S3Key": {
+		    		"Ref": "S3Key"
+		    	}
+		    },
+		    "Description": {
+		    	"Ref": "Description"
+		    },
+		    "FunctionName": {
+		    	"Ref": "FunctionName"
+		    },
+		    "Handler": {
+		    	"Ref": "Handler"
+		    },
+		    "MemorySize": {
+		    	"Ref": "MemorySize"
+		    },
+		    "Role": {
+		    	"Ref": "Role"
+		    },
+		    "Runtime": {
+		    	"Ref": "Runtime"
+		    },
+		    "Timeout": {
+		    	"Ref": "Timeout"
+		    }
+		  }
+    }
+  },
+  "Outputs": {
+  	"FunctionResourceName": {
+			"Description": "Lambda Function Resource Name",
+			"Value": {
+			  "Ref": "Function"
+			}
+  	},
+  	"FunctionArn": {
+  		"Description": "Lambda Function ARN",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"Function",
+  				"Arn"
+  			]
+  		}
+  	}
+  }
+}
