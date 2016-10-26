@@ -1,0 +1,254 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates: a CloudTrail in every region of a given AWS account, an S3 bucket for all Trails to send logs to, and a CloudWatch Log Group for all Trails to send logs to",
+  "Parameters": {
+    "CloudTrailS3BucketName": {
+      "Default": "myprivatecloudtrails3bucket",
+      "Description": "S3 bucket name where CloudTrail logs are stored",
+      "Type": "String"
+    },
+    "CloudWatchLogGroupName": {
+      "Default": "CloudTrail/DefaultLogGroup",
+      "Description": "CloudWatch Log Group Name for CloudTrail",
+      "Type": "String"
+    },
+    "CloudWatchLogRoleManagedPolicyArns": {
+      "Default": "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+      "Description": "Managed policy ARN for CloudTrail CloudWatch Log Role",
+      "Type": "String"
+    },
+    "CloudWatchLogRoleName": {
+      "Default": "CloudTrailToCloudWatchLogs",
+      "Description": "CloudWatch Log Role Name for CloudTrail",
+      "Type": "String"
+    },
+    "NestedStackS3BucketName": {
+      "Description": "S3 bucket containing all nested CloudFormation stacks",
+      "Type": "String"
+    },
+  },
+  "Mappings" :{
+    "Static": {
+      "All": {
+        "CloudTrailNestedStackS3Key": "/cloudformation_templates/cloudtrail/cloudtrail_multiregion_trail.template",
+        "CloudWatchLogGroupNestedStackS3Key": "/cloudformation_templates/cloudwatch/cloudwatch_logs_log_group.template",
+        "CloudWatchLogRoleNestedStackS3Key": "/cloudformation_templates/iam/iam_cloudtrail_role.template",
+        "S3BucketNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket.template",
+        "S3BucketPolicyNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket_policies/cloudtrail_s3_bucket_policy.template"
+      }
+    }
+  },
+  "Resources": {
+    "CloudTrailNestedStack": {
+      "DependsOn": [
+        "CloudWatchLogGroupNestedStack",
+        "CloudWatchLogRoleNestedStack",
+        "S3BucketNestedStack",
+        "S3BucketPolicyNestedStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "NestedStackS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudTrailNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "CloudWatchLogsLogGroupArn": {
+            "Fn::GetAtt": [
+              "CloudWatchLogGroupNestedStack",
+              "Outputs.LogGroupArn"
+            ]
+          },
+          "CloudWatchLogsRoleArn": {
+            "Fn::GetAtt": [
+              "CloudWatchLogRoleNestedStack",
+              "Outputs.RoleArn"
+            ]
+          },
+          "S3BucketName": {
+          "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "CloudWatchLogGroupNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "NestedStackS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudWatchLogGroupNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "LogGroupName": {
+            "Ref": "CloudWatchLogGroupName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "CloudWatchLogRoleNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "NestedStackS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudWatchLogRoleNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "ManagedPolicyArns": {
+            "Ref": "CloudWatchLogRoleManagedPolicyArns"
+          },
+          "Path": "",
+          "RoleName": {
+            "Ref": "CloudWatchLogRoleName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "S3BucketNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "NestedStackS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3BucketNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "BucketName": {
+            "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "S3BucketPolicyNestedStack": {
+      "DependsOn": "S3BucketNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "NestedStackS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3BucketPolicyNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "S3Bucket": {
+            "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    }
+  },
+  "Outputs": {
+    "CloudTrailS3BucketDomainName": {
+      "Description": "CloudWatch Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "S3BucketNestedStack",
+          "Outputs.S3BucketDomainName"
+        ]
+      }
+    },
+    "CloudTrailResourceName": {
+      "Description": "CloudTrial Resource Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudTrailNestedStack",
+          "Outputs.MultiRegionTrailResourceName"
+        ]
+      }
+    },
+    "CloudWatchLogsLogGroupArn": {
+      "Description": "CloudWatch Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudWatchLogGroupNestedStack",
+          "Outputs.LogGroupArn"
+        ]
+      }
+    },
+    "CloudWatchLogsRoleArn": {
+      "Description": "CloudWatch Log Role ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudWatchLogRoleNestedStack",
+          "Outputs.RoleArn"
+        ]
+      }
+    }
+  }
+}
