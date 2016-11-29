@@ -1,0 +1,122 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates: a CloudTrail in every region of a given AWS account and an S3 bucket for all Trails to send logs to",
+  "Parameters": {
+    "S3BucketName": {
+      "Default": "myprivatecloudtrails3bucket",
+      "Description": "S3 bucket name where CloudTrail logs are stored",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "MultiRegionTrail": {
+      "DependsOn": [
+        "S3Bucket",
+        "S3BucketPolicy"
+      ],
+      "Type": "AWS::CloudTrail::Trail",
+      "Properties": {
+        "EnableLogFileValidation": true,
+        "IncludeGlobalServiceEvents": true,
+        "IsLogging": true, 
+        "IsMultiRegionTrail": true,
+        "S3BucketName": {
+          "Ref": "S3BucketName"
+        }
+      }
+    },
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Ref": "S3BucketName"
+        }
+      }
+    },
+    "S3BucketPolicy": {
+      "DependsOn": "S3Bucket",
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "S3BucketName"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AWSCloudTrailAclCheck",
+              "Effect": "Allow",
+              "Principal": {
+                "Service":"cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:GetBucketAcl",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3BucketName"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Sid": "AWSCloudTrailWrite",
+              "Effect": "Allow",
+              "Principal": {
+                "Service":"cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::", 
+                    {
+                      "Ref":"S3BucketName"
+                    }, 
+                    "/AWSLogs/",
+                    {
+                      "Ref":"AWS::AccountId"
+                    },
+                    "/*"
+                  ]
+                ]
+              },
+              "Condition": {
+                "StringEquals": {
+                  "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "MultiRegionTrailResourceName": {
+      "Description": "Multi Region Trail Resource Name",
+      "Value": {
+        "Ref": "MultiRegionTrail"
+      }
+    },
+    "S3BucketDomainName": {
+      "Description": "S3 Bucket Domain Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "S3Bucket",
+          "DomainName"
+        ]
+      }
+    },
+    "S3BucketResourceName": {
+      "Description": "S3 Bucket Resource Name",
+      "Value": {
+        "Ref": "S3Bucket"
+      }
+    }
+  }
+}
