@@ -38,6 +38,8 @@ myprivatecloudformationbucket/
 		......
 ```
 
+THe `standalone` folder contains templates that are standalone and do not leverage other templates via nested stacks. They, too, deploy purpose built solutions from a single template file.
+
 Once cloned, simply pass the name of your S3 bucket where the templates are stored to the `CloudFormationS3BucketName` parameter in any of the orchestration templates and you are off to the races!
 
 ## Contributors
