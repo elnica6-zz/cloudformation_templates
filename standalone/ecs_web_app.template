@@ -312,7 +312,7 @@
         "Cluster": {
           "Ref": "EcsCluster"
         },
-        "DesiredCount": "1",
+        "DesiredCount": "2",
         "LoadBalancers": [
         	{
           	"ContainerName": "simple-app",
