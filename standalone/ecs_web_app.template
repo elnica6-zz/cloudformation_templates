@@ -61,7 +61,7 @@
       },
       "us-west-2": {
         "ImageId": "ami-7abc111a"
-      },
+      }
     }
   },
   "Resources": {
