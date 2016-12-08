@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "This template creates a Multi-AZ, 3 tiered network (internal-private, external-private, and public subnets) VPC infrastructure with managed NAT gateways in the public subnet for each Availability Zone. It also creates subnet groups in the internal-private tier for ElastiCache, RDS, and Redshift. You have the option of deploy to either 2 (the default), 3, or 4 Availability Zones.",
+  "Description": "This template creates a Multi-AZ, multi-tiered network VPC with managed NAT gateways in the public subnet for each Availability Zone. It also creates subnet groups for ElastiCache, RDS, and Redshift. You have the option of deploy to either 2 (the default), 3, or 4 Availability Zones and a 2 (the default) or 3 tiered network VPC.",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -17,17 +17,17 @@
             "default": "Network Configuration"
           },
           "Parameters": [
-            "DomainName",
+            "NumberOfNetworkTiers",
             "VPCName"
           ]
         }
       ],
       "ParameterLabels": {
-        "DomainName": {
-          "default": "VPC Domain Name"
-        },
         "NumberOfAZs": {
           "default": "Number of Availability Zones"
+        },
+        "NumberOfNetworkTiers": {
+          "default": "Number of network tiers"
         },
         "VPCName": {
           "default": "VPC Name"
@@ -36,11 +36,6 @@
     }
   },
   "Parameters": {
-    "DomainName": {
-      "Default": "us-west-2.compute.internal",
-      "Description": "VPC Domain Name",
-      "Type": "String"
-    },
     "NumberOfAZs": {
       "AllowedValues": [
         "2",
@@ -49,6 +44,15 @@
       ],
       "Default": "2",
       "Description": "Number of Availability Zones to use in the VPC. Ensure that the Region you are deploying to can support the number of AZs selected!",
+      "Type": "String"
+    },
+    "NumberOfNetworkTiers": {
+      "AllowedValues": [
+        "2",
+        "3"
+      ],
+      "Default": "2",
+      "Description": "Number of network tiers to use in the VPC. You can create a 2 (private & public) or 3 (internal, private, & public) tiered network VPC. The internal subnet will have no outbound internet access. The private subnet will have outbound internet access via NAT Gateways. DB related subnet groups will be created in both internal and private subnets.",
       "Type": "String"
     },
     "VPCName": {
@@ -60,19 +64,17 @@
         "production01"
       ],
       "Default": "lab01",
-      "Description": "VPC Environment name",
+      "Description": "VPC Environment name.",
       "Type": "String"
     }
   },
   "Mappings": {
     "Static": {
       "All": {
-        "Owner": "me@myemail.com",
-        "CostCenter": "12345",
         "S3Bucket": "myprivates3bucket",
-        "InternalPrivateSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/internal_private_subnets.template",
-        "ExternalPrivateSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/external_private_subnets.template",
-        "ExternalPrivateSubnetsInternetRouteNestedStackS3Key": "/cloudformation_templates/vpc/subnets/external_private_subnets_internet_route.template",
+        "InternalSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/internal_subnets.template",
+        "PrivateSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/private_subnets.template",
+        "PrivateSubnetsInternetRouteNestedStackS3Key": "/cloudformation_templates/vpc/subnets/private_subnets_internet_route.template",
         "PublicSubnetsNestedStackS3Key": "/cloudformation_templates/vpc/subnets/public_subnets.template",
         "ElastiCacheSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/elasticache_subnet_group.template",
         "RDSDBSubnetGroupNestedStackS3Key": "/cloudformation_templates/vpc/subnet_groups/rds_db_subnet_group.template",
@@ -82,14 +84,14 @@
     },
     "VPC": {
       "lab01": {
-        "InternalPrivateSubnet1CIDR": "10.0.0.0/20",
-        "InternalPrivateSubnet2CIDR": "10.0.16.0/20",
-        "InternalPrivateSubnet3CIDR": "10.0.32.0/20",
-        "InternalPrivateSubnet4CIDR": "10.0.48.0/20",
-        "ExternalPrivateSubnet1CIDR": "10.0.64.0/20",
-        "ExternalPrivateSubnet2CIDR": "10.0.80.0/20",
-        "ExternalPrivateSubnet3CIDR": "10.0.96.0/20",
-        "ExternalPrivateSubnet4CIDR": "10.0.112.0/20",
+        "InternalSubnet1CIDR": "10.0.0.0/20",
+        "InternalSubnet2CIDR": "10.0.16.0/20",
+        "InternalSubnet3CIDR": "10.0.32.0/20",
+        "InternalSubnet4CIDR": "10.0.48.0/20",
+        "PrivateSubnet1CIDR": "10.0.64.0/20",
+        "PrivateSubnet2CIDR": "10.0.80.0/20",
+        "PrivateSubnet3CIDR": "10.0.96.0/20",
+        "PrivateSubnet4CIDR": "10.0.112.0/20",
         "PublicSubnet1CIDR": "10.0.128.0/24",
         "PublicSubnet2CIDR": "10.0.129.0/24",
         "PublicSubnet3CIDR": "10.0.130.0/24",
@@ -97,14 +99,14 @@
         "VPCCIDR": "10.0.0.0/16"
       },
       "continuous-integration01": {
-        "InternalPrivateSubnet1CIDR": "10.1.0.0/20",
-        "InternalPrivateSubnet2CIDR": "10.1.16.0/20",
-        "InternalPrivateSubnet3CIDR": "10.1.32.0/20",
-        "InternalPrivateSubnet4CIDR": "10.1.48.0/20",
-        "ExternalPrivateSubnet1CIDR": "10.1.64.0/20",
-        "ExternalPrivateSubnet2CIDR": "10.1.80.0/20",
-        "ExternalPrivateSubnet3CIDR": "10.1.96.0/20",
-        "ExternalPrivateSubnet4CIDR": "10.1.112.0/20",
+        "InternalSubnet1CIDR": "10.1.0.0/20",
+        "InternalSubnet2CIDR": "10.1.16.0/20",
+        "InternalSubnet3CIDR": "10.1.32.0/20",
+        "InternalSubnet4CIDR": "10.1.48.0/20",
+        "PrivateSubnet1CIDR": "10.1.64.0/20",
+        "PrivateSubnet2CIDR": "10.1.80.0/20",
+        "PrivateSubnet3CIDR": "10.1.96.0/20",
+        "PrivateSubnet4CIDR": "10.1.112.0/20",
         "PublicSubnet1CIDR": "10.1.128.0/24",
         "PublicSubnet2CIDR": "10.1.129.0/24",
         "PublicSubnet3CIDR": "10.1.130.0/24",
@@ -112,14 +114,14 @@
         "VPCCIDR": "10.1.0.0/16"
       },
       "system-integration01": {
-        "InternalPrivateSubnet1CIDR": "10.2.0.0/20",
-        "InternalPrivateSubnet2CIDR": "10.2.16.0/20",
-        "InternalPrivateSubnet3CIDR": "10.2.32.0/20",
-        "InternalPrivateSubnet4CIDR": "10.2.48.0/20",
-        "ExternalPrivateSubnet1CIDR": "10.2.64.0/20",
-        "ExternalPrivateSubnet2CIDR": "10.2.80.0/20",
-        "ExternalPrivateSubnet3CIDR": "10.2.96.0/20",
-        "ExternalPrivateSubnet4CIDR": "10.2.112.0/20",
+        "InternalSubnet1CIDR": "10.2.0.0/20",
+        "InternalSubnet2CIDR": "10.2.16.0/20",
+        "InternalSubnet3CIDR": "10.2.32.0/20",
+        "InternalSubnet4CIDR": "10.2.48.0/20",
+        "PrivateSubnet1CIDR": "10.2.64.0/20",
+        "PrivateSubnet2CIDR": "10.2.80.0/20",
+        "PrivateSubnet3CIDR": "10.2.96.0/20",
+        "PrivateSubnet4CIDR": "10.2.112.0/20",
         "PublicSubnet1CIDR": "10.2.128.0/24",
         "PublicSubnet2CIDR": "10.2.129.0/24",
         "PublicSubnet3CIDR": "10.2.130.0/24",
@@ -127,14 +129,14 @@
         "VPCCIDR": "10.2.0.0/16"
       },
       "staging01": {
-        "InternalPrivateSubnet1CIDR": "10.3.0.0/20",
-        "InternalPrivateSubnet2CIDR": "10.3.16.0/20",
-        "InternalPrivateSubnet3CIDR": "10.3.32.0/20",
-        "InternalPrivateSubnet4CIDR": "10.3.48.0/20",
-        "ExternalPrivateSubnet1CIDR": "10.3.64.0/20",
-        "ExternalPrivateSubnet2CIDR": "10.3.80.0/20",
-        "ExternalPrivateSubnet3CIDR": "10.3.96.0/20",
-        "ExternalPrivateSubnet4CIDR": "10.3.112.0/20",
+        "InternalSubnet1CIDR": "10.3.0.0/20",
+        "InternalSubnet2CIDR": "10.3.16.0/20",
+        "InternalSubnet3CIDR": "10.3.32.0/20",
+        "InternalSubnet4CIDR": "10.3.48.0/20",
+        "PrivateSubnet1CIDR": "10.3.64.0/20",
+        "PrivateSubnet2CIDR": "10.3.80.0/20",
+        "PrivateSubnet3CIDR": "10.3.96.0/20",
+        "PrivateSubnet4CIDR": "10.3.112.0/20",
         "PublicSubnet1CIDR": "10.3.128.0/24",
         "PublicSubnet2CIDR": "10.3.129.0/24",
         "PublicSubnet3CIDR": "10.3.130.0/24",
@@ -142,14 +144,14 @@
         "VPCCIDR": "10.3.0.0/16"
       },
       "production01": {
-        "InternalPrivateSubnet1CIDR": "10.4.0.0/20",
-        "InternalPrivateSubnet2CIDR": "10.4.16.0/20",
-        "InternalPrivateSubnet3CIDR": "10.4.32.0/20",
-        "InternalPrivateSubnet4CIDR": "10.4.48.0/20",
-        "ExternalPrivateSubnet1CIDR": "10.4.64.0/20",
-        "ExternalPrivateSubnet2CIDR": "10.4.80.0/20",
-        "ExternalPrivateSubnet3CIDR": "10.4.96.0/20",
-        "ExternalPrivateSubnet4CIDR": "10.4.112.0/20",
+        "InternalSubnet1CIDR": "10.4.0.0/20",
+        "InternalSubnet2CIDR": "10.4.16.0/20",
+        "InternalSubnet3CIDR": "10.4.32.0/20",
+        "InternalSubnet4CIDR": "10.4.48.0/20",
+        "PrivateSubnet1CIDR": "10.4.64.0/20",
+        "PrivateSubnet2CIDR": "10.4.80.0/20",
+        "PrivateSubnet3CIDR": "10.4.96.0/20",
+        "PrivateSubnet4CIDR": "10.4.112.0/20",
         "PublicSubnet1CIDR": "10.4.128.0/24",
         "PublicSubnet2CIDR": "10.4.129.0/24",
         "PublicSubnet3CIDR": "10.4.130.0/24",
@@ -181,6 +183,34 @@
         },
         "4"
       ]
+    },
+    "3NetworkTierCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "NumberOfNetworkTiers"
+        },
+        "3"
+      ]
+    },
+    "3NetworkTierAnd3AZCondition": {
+      "Fn::And": [
+        {
+          "Condition": "3NetworkTierCondition"
+        },
+        {
+          "Condition": "3AZCondition"
+        }
+      ]
+    },
+    "3NetworkTierAnd4AZCondition": {
+      "Fn::And": [
+        {
+          "Condition": "3NetworkTierCondition"
+        },
+        {
+          "Condition": "4AZCondition"
+        }
+      ]
     }
   },
   "Resources": {
@@ -188,22 +218,20 @@
       "Type": "AWS::EC2::DHCPOptions",
       "Properties": {
         "DomainName": {
-          "Ref": "DomainName",
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::Region"
+              },
+              ".compute.internal"
+            ]
+          ]
         },
         "DomainNameServers": [
           "AmazonProvidedDNS"
         ],
         "Tags": [
-          {
-            "Key": "CostCenter",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "CostCenter"
-              ]
-            }
-          },
           {
             "Key": "Environment",
             "Value": {
@@ -221,16 +249,6 @@
                   },
                   "_dhcpoptions_1"
                 ]
-              ]
-            }
-          },
-          {
-            "Key": "Owner",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "Owner"
               ]
             }
           }
@@ -253,16 +271,6 @@
         "EnableDnsHostnames": "true",
         "Tags": [
           {
-            "Key": "CostCenter",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "CostCenter"
-              ]
-            }
-          },
-          {
             "Key": "Environment",
             "Value": {
               "Ref": "VPCName"
@@ -271,16 +279,6 @@
             "Key": "Name",
             "Value": {
               "Ref": "VPCName"
-            }
-          },
-          {
-            "Key": "Owner",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "Owner"
-              ]
             }
           }
         ]
@@ -300,17 +298,7 @@
     "InternetGateway": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
-        "Tags": [
-          {
-            "Key": "CostCenter",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "CostCenter"
-              ]
-            }
-          },          
+        "Tags": [        
           {
             "Key": "Environment",
             "Value": {
@@ -320,16 +308,6 @@
           {
             "Key": "Network",
             "Value": "public"
-          },
-          {
-            "Key": "Owner",
-            "Value": {
-              "Fn::FindInMap": [
-                "Static",
-                "All",
-                "Owner"
-              ]
-            }
           }
         ]
       }
@@ -345,7 +323,8 @@
         }
       }
     },
-    "InternalPrivateSubnetsNestedStack": {
+    "InternalSubnetsNestedStack": {
+      "Condition": "3NetworkTierCondition",
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
@@ -365,65 +344,51 @@
                 "Fn::FindInMap": [
                   "Static",
                   "All",
-                  "InternalPrivateSubnetsNestedStackS3Key"
+                  "InternalSubnetsNestedStackS3Key"
                 ]
               }
             ]
           ]
         },
         "Parameters": {
-          "CostCenter": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "CostCenter"
-            ]
-          },
-          "InternalPrivateSubnet1CIDR": {
+          "InternalSubnet1CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "InternalPrivateSubnet1CIDR"
+              "InternalSubnet1CIDR"
             ]
           },
-          "InternalPrivateSubnet2CIDR": {
+          "InternalSubnet2CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "InternalPrivateSubnet2CIDR"
+              "InternalSubnet2CIDR"
             ]
           },
-          "InternalPrivateSubnet3CIDR": {
+          "InternalSubnet3CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "InternalPrivateSubnet3CIDR"
+              "InternalSubnet3CIDR"
             ]
           },
-          "InternalPrivateSubnet4CIDR": {
+          "InternalSubnet4CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "InternalPrivateSubnet4CIDR"
+              "InternalSubnet4CIDR"
             ]
           },
           "NumberOfAZs": {
             "Ref": "NumberOfAZs"
-          },
-          "Owner": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "Owner"
-            ]
           },
           "VPC": {
             "Ref": "VPC"
@@ -435,7 +400,7 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "ExternalPrivateSubnetsNestedStack": {
+    "PrivateSubnetsNestedStack": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
@@ -455,66 +420,52 @@
                 "Fn::FindInMap": [
                   "Static",
                   "All",
-                  "ExternalPrivateSubnetsNestedStackS3Key"
+                  "PrivateSubnetsNestedStackS3Key"
                 ]
               }
             ]
           ]
         },
         "Parameters": {
-          "CostCenter": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "CostCenter"
-            ]
-          },
-          "ExternalPrivateSubnet1CIDR": {
+          "PrivateSubnet1CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "ExternalPrivateSubnet1CIDR"
+              "PrivateSubnet1CIDR"
             ]
           },
-          "ExternalPrivateSubnet2CIDR": {
+          "PrivateSubnet2CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "ExternalPrivateSubnet2CIDR"
+              "PrivateSubnet2CIDR"
             ]
           },
-          "ExternalPrivateSubnet3CIDR": {
+          "PrivateSubnet3CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "ExternalPrivateSubnet3CIDR"
+              "PrivateSubnet3CIDR"
             ]
           },
-          "ExternalPrivateSubnet4CIDR": {
+          "PrivateSubnet4CIDR": {
             "Fn::FindInMap": [
               "VPC",
               {
                 "Ref": "VPCName"
               },
-              "ExternalPrivateSubnet4CIDR"
+              "PrivateSubnet4CIDR"
             ]
           },
           "NumberOfAZs": {
             "Ref": "NumberOfAZs"
-          },
-          "Owner": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "Owner"
-            ]
-          },          
+          },         
           "VPC": {
             "Ref": "VPC"
           },
@@ -525,9 +476,9 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "ExternalPrivateSubnetsInternetRouteNestedStack": {
+    "PrivateSubnetsInternetRouteNestedStack": {
       "DependsOn": [
-        "ExternalPrivateSubnetsNestedStack",
+        "PrivateSubnetsNestedStack",
         "PublicSubnetsNestedStack"
       ],
       "Type": "AWS::CloudFormation::Stack",
@@ -549,7 +500,7 @@
                 "Fn::FindInMap": [
                   "Static",
                   "All",
-                  "ExternalPrivateSubnetsInternetRouteNestedStackS3Key"
+                  "PrivateSubnetsInternetRouteNestedStackS3Key"
                 ]
               }
             ]
@@ -562,37 +513,37 @@
           "VPCName": {
             "Ref": "VPCName"
           },
-          "ExternalPrivateSubnet1RouteTableID": {
+          "PrivateSubnet1RouteTableID": {
             "Fn::GetAtt": [
-              "ExternalPrivateSubnetsNestedStack",
-              "Outputs.ExternalPrivateSubnet1RouteTableID"
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet1RouteTableID"
             ]
           },
-          "ExternalPrivateSubnet2RouteTableID": {
+          "PrivateSubnet2RouteTableID": {
             "Fn::GetAtt": [
-              "ExternalPrivateSubnetsNestedStack",
-              "Outputs.ExternalPrivateSubnet2RouteTableID"
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet2RouteTableID"
             ]
           },
-          "ExternalPrivateSubnet3RouteTableID": {
+          "PrivateSubnet3RouteTableID": {
             "Fn::If": [
               "3AZCondition",
               {
                 "Fn::GetAtt": [
-                  "ExternalPrivateSubnetsNestedStack",
-                  "Outputs.ExternalPrivateSubnet3RouteTableID"
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet3RouteTableID"
                 ]                
               },
               ""
             ]
           },
-          "ExternalPrivateSubnet4RouteTableID": {
+          "PrivateSubnet4RouteTableID": {
             "Fn::If": [
               "4AZCondition",
               {
                 "Fn::GetAtt": [
-                  "ExternalPrivateSubnetsNestedStack",
-                  "Outputs.ExternalPrivateSubnet4RouteTableID"
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet4RouteTableID"
                 ]
               },
               ""              
@@ -669,25 +620,11 @@
           ]
         },
         "Parameters": {
-          "CostCenter": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "CostCenter"
-            ]
-          },
           "InternetGatewayID": {
             "Ref": "InternetGateway"
           },
           "NumberOfAZs": {
             "Ref": "NumberOfAZs"
-          },
-          "Owner": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "Owner"
-            ]
           },
           "PublicSubnet1CIDR": {
             "Fn::FindInMap": [
@@ -735,8 +672,9 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "ElastiCacheSubnetGroupNestedStack": {
-      "DependsOn": "InternalPrivateSubnetsNestedStack",
+    "ElastiCacheInternalSubnetGroupNestedStack": {
+      "Condition": "3NetworkTierCondition",
+      "DependsOn": "InternalSubnetsNestedStack",
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
@@ -763,37 +701,37 @@
           ]
         },
         "Parameters": {
-          "InternalPrivateSubnet1ID": {
+          "Subnet1ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet1ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet1ID"
             ]
           },
-          "InternalPrivateSubnet2ID": {
+          "Subnet2ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet2ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet2ID"
             ]
           },
-          "InternalPrivateSubnet3ID": {
+          "Subnet3ID": {
             "Fn::If": [
               "3AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet3ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet3ID"
                 ]
               },
               ""
             ]
           },
-          "InternalPrivateSubnet4ID": {
+          "Subnet4ID": {
             "Fn::If": [
               "4AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet4ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet4ID"
                 ]
               },
               ""
@@ -806,8 +744,80 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "RDSDBSubnetGroupNestedStack": {
-      "DependsOn": "InternalPrivateSubnetsNestedStack",
+    "ElastiCachePrivateSubnetGroupNestedStack": {
+      "DependsOn": "PrivateSubnetsNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "ElastiCacheSubnetGroupNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "Subnet1ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet1ID"
+            ]
+          },
+          "Subnet2ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet2ID"
+            ]
+          },
+          "Subnet3ID": {
+            "Fn::If": [
+              "3AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet3ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "Subnet4ID": {
+            "Fn::If": [
+              "4AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet4ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "NumberOfAZs": {
+            "Ref": "NumberOfAZs"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "RDSDBInternalSubnetGroupNestedStack": {
+      "Condition": "3NetworkTierCondition",
+      "DependsOn": "InternalSubnetsNestedStack",
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
@@ -834,44 +844,37 @@
           ]
         },
         "Parameters": {
-          "CostCenter": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "CostCenter"
-            ]
-          },
-          "InternalPrivateSubnet1ID": {
+          "Subnet1ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet1ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet1ID"
             ]
           },
-          "InternalPrivateSubnet2ID": {
+          "Subnet2ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet2ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet2ID"
             ]
           },
-          "InternalPrivateSubnet3ID": {
+          "Subnet3ID": {
             "Fn::If": [
               "3AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet3ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet3ID"
                 ]
               },
               ""
             ]
           },
-          "InternalPrivateSubnet4ID": {
+          "Subnet4ID": {
             "Fn::If": [
               "4AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet4ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet4ID"
                 ]
               },
               ""
@@ -880,12 +883,79 @@
           "NumberOfAZs": {
             "Ref": "NumberOfAZs"
           },
-          "Owner": {
-            "Fn::FindInMap": [
-              "Static",
-              "All",
-              "Owner"
+          "VPCName": {
+            "Ref": "VPCName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "RDSDBPrivateSubnetGroupNestedStack": {
+      "DependsOn": "PrivateSubnetsNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "RDSDBSubnetGroupNestedStackS3Key"
+                ]
+              }
             ]
+          ]
+        },
+        "Parameters": {
+          "Subnet1ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet1ID"
+            ]
+          },
+          "Subnet2ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet2ID"
+            ]
+          },
+          "Subnet3ID": {
+            "Fn::If": [
+              "3AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet3ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "Subnet4ID": {
+            "Fn::If": [
+              "4AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet4ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "NumberOfAZs": {
+            "Ref": "NumberOfAZs"
           },
           "VPCName": {
             "Ref": "VPCName"
@@ -894,8 +964,9 @@
         "TimeoutInMinutes": "5"
       }
     },
-    "RedshiftClusterSubnetGroupNestedStack": {
-      "DependsOn": "InternalPrivateSubnetsNestedStack",
+    "RedshiftClusterInternalSubnetGroupNestedStack": {
+      "Condition": "3NetworkTierCondition",
+      "DependsOn": "PrivateSubnetsNestedStack",
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
@@ -922,37 +993,108 @@
           ]
         },
         "Parameters": {
-          "InternalPrivateSubnet1ID": {
+          "Subnet1ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet1ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet1ID"
             ]
           },
-          "InternalPrivateSubnet2ID": {
+          "Subnet2ID": {
             "Fn::GetAtt": [
-              "InternalPrivateSubnetsNestedStack",
-              "Outputs.InternalPrivateSubnet2ID"
+              "InternalSubnetsNestedStack",
+              "Outputs.InternalSubnet2ID"
             ]
           },
-          "InternalPrivateSubnet3ID": {
+          "Subnet3ID": {
             "Fn::If": [
               "3AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet3ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet3ID"
                 ]
               },
               ""
             ]
           },
-          "InternalPrivateSubnet4ID": {
+          "Subnet4ID": {
             "Fn::If": [
               "4AZCondition",
               {
                 "Fn::GetAtt": [
-                  "InternalPrivateSubnetsNestedStack",
-                  "Outputs.InternalPrivateSubnet4ID"
+                  "InternalSubnetsNestedStack",
+                  "Outputs.InternalSubnet4ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "NumberOfAZs": {
+            "Ref": "NumberOfAZs"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "RedshiftClusterPrivateSubnetGroupNestedStack": {
+      "DependsOn": "PrivateSubnetsNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3Bucket"
+                ]
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "RedshiftClusterSubnetGroupNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "Subnet1ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet1ID"
+            ]
+          },
+          "Subnet2ID": {
+            "Fn::GetAtt": [
+              "PrivateSubnetsNestedStack",
+              "Outputs.PrivateSubnet2ID"
+            ]
+          },
+          "Subnet3ID": {
+            "Fn::If": [
+              "3AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet3ID"
+                ]
+              },
+              ""
+            ]
+          },
+          "Subnet4ID": {
+            "Fn::If": [
+              "4AZCondition",
+              {
+                "Fn::GetAtt": [
+                  "PrivateSubnetsNestedStack",
+                  "Outputs.PrivateSubnet4ID"
                 ]
               },
               ""
@@ -986,26 +1128,26 @@
                 "Fn::FindInMap": [
                   "Static",
                   "All",
-                  "RedshiftClusterPublicSubnetGroupNestedStackS3Key"
+                  "RedshiftClusterSubnetGroupNestedStackS3Key"
                 ]
               }
             ]
           ]
         },
         "Parameters": {
-          "PublicSubnet1ID": {
+          "Subnet1ID": {
             "Fn::GetAtt": [
               "PublicSubnetsNestedStack",
               "Outputs.PublicSubnet1ID"
             ]
           },
-          "PublicSubnet2ID": {
+          "Subnet2ID": {
             "Fn::GetAtt": [
               "PublicSubnetsNestedStack",
               "Outputs.PublicSubnet2ID"
             ]
           },
-          "PublicSubnet3ID": {
+          "Subnet3ID": {
             "Fn::If": [
               "3AZCondition",
               {
@@ -1017,7 +1159,7 @@
               ""
             ]
           },
-          "PublicSubnet4ID": {
+          "Subnet4ID": {
             "Fn::If": [
               "4AZCondition",
               {
@@ -1039,6 +1181,24 @@
   },
   "Outputs": {
     "VPCCIDR": {
+      "Description": "VPC CIDR",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-VpcCidr"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::FindInMap": [
           "VPC",
@@ -1047,202 +1207,358 @@
           },
           "VPCCIDR"
         ]
-      },
-      "Description": "VPC CIDR"
+      }
     },
     "VPCID": {
+      "Description": "VPC ID",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-VpcId"
+            ]
+          ]
+        }
+      },      
       "Value": {
         "Ref": "VPC"
+      }
+    },
+    "InternalSubnet1CIDR": {
+      "Condition": "3NetworkTierCondition",
+      "Description": "Internal subnet 1 CIDR in Availability Zone 1",
+      "Value": {
+        "Fn::GetAtt": [
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet1CIDR"
+        ]
+      }
+    },
+    "InternalSubnet1ID": {
+      "Condition": "3NetworkTierCondition",
+      "Description": "Internal subnet 1 ID in Availability Zone 1",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-InternalSubnet1Id"
+            ]
+          ]
+        }
+      },  
+      "Value": {
+        "Fn::GetAtt": [
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet1ID"
+        ]
+      }
+    },
+    "InternalSubnet2CIDR": {
+      "Condition": "3NetworkTierCondition",
+      "Description": "Internal subnet 2 CIDR in Availability Zone 2",
+      "Value": {
+        "Fn::GetAtt": [
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet2CIDR"
+        ]
+      }
+    },
+    "InternalSubnet2ID": {
+      "Condition": "3NetworkTierCondition",
+      "Description": "Internal subnet 2 ID in Availability Zone 2",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-InternalSubnet2Id"
+            ]
+          ]
+        }
       },
-      "Description": "VPC ID"
-    },
-    "InternalPrivateSubnet1CIDR": {
-      "Description": "Internal Private subnet 1 CIDR in Availability Zone 1",
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet1CIDR"
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet2ID"
         ]
       }
     },
-    "InternalPrivateSubnet1ID": {
-      "Description": "Internal Private subnet 1 ID in Availability Zone 1",
+    "InternalSubnet3CIDR": {
+      "Condition": "3NetworkTierAnd3AZCondition",
+      "Description": "Internal subnet 3 CIDR in Availability Zone 3",
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet1ID"
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet3CIDR"
         ]
       }
     },
-    "InternalPrivateSubnet2CIDR": {
-      "Description": "Internal Private subnet 2 CIDR in Availability Zone 2",
+    "InternalSubnet3ID": {
+      "Condition": "3NetworkTierAnd3AZCondition",
+      "Description": "Internal subnet 3 ID in Availability Zone 3",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-InternalSubnet3Id"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet2CIDR"
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet3ID"
         ]
       }
     },
-    "InternalPrivateSubnet2ID": {
-      "Description": "Internal Private subnet 2 ID in Availability Zone 2",
+    "InternalSubnet4CIDR": {
+      "Condition": "3NetworkTierAnd4AZCondition",      
+      "Description": "Internal subnet 4 CIDR in Availability Zone 4",
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet2ID"
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet4CIDR"
         ]
       }
     },
-    "InternalPrivateSubnet3CIDR": {
+    "InternalSubnet4ID": {
+      "Condition": "3NetworkTierAnd4AZCondition",
+      "Description": "Internal subnet 4 ID in Availability Zone 4",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-InternalSubnet4Id"
+            ]
+          ]
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "InternalSubnetsNestedStack",
+          "Outputs.InternalSubnet4ID"
+        ]
+      }
+    },
+    "PrivateSubnet1CIDR": {
+      "Description": "Private subnet 1 CIDR in Availability Zone 1",
+      "Value": {
+        "Fn::GetAtt": [
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet1CIDR"
+        ]
+      }
+    },
+    "PrivateSubnet1ID": {
+      "Description": "Private subnet 1 ID in Availability Zone 1",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PrivateSubnet1Id"
+            ]
+          ]
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet1ID"
+        ]
+      }
+    },
+    "PrivateSubnet2CIDR": {
+      "Description": "Private subnet 2 CIDR in Availability Zone 2",
+      "Value": {
+        "Fn::GetAtt": [
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet2CIDR"
+        ]
+      }
+    },
+    "PrivateSubnet2ID": {
+      "Description": "Private subnet 2 ID in Availability Zone 2",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PrivateSubnet2Id"
+            ]
+          ]
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet2ID"
+        ]
+      }
+    },
+    "PrivateSubnet3CIDR": {
       "Condition": "3AZCondition",
-      "Description": "Internal Private subnet 3 CIDR in Availability Zone 3",
+      "Description": "Private subnet 3 CIDR in Availability Zone 3",
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet3CIDR"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet3CIDR"
         ]
       }
     },
-    "InternalPrivateSubnet3ID": {
+    "PrivateSubnet3ID": {
       "Condition": "3AZCondition",
-      "Description": "Internal Private subnet 3 ID in Availability Zone 3",
+      "Description": "Private subnet 3 ID in Availability Zone 3",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PrivateSubnet3Id"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet3ID"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet3ID"
         ]
       }
     },
-    "InternalPrivateSubnet4CIDR": {
+    "PrivateSubnet4CIDR": {
       "Condition": "4AZCondition",      
-      "Description": "Internal Private subnet 4 CIDR in Availability Zone 4",
+      "Description": "Private subnet 4 CIDR in Availability Zone 4",
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet4CIDR"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet4CIDR"
         ]
       }
     },
-    "InternalPrivateSubnet4ID": {
+    "PrivateSubnet4ID": {
       "Condition": "4AZCondition",
-      "Description": "Internal Private subnet 4 ID in Availability Zone 4",
+      "Description": "Private subnet 4 ID in Availability Zone 4",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PrivateSubnet4Id"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::GetAtt": [
-          "InternalPrivateSubnetsNestedStack",
-          "Outputs.InternalPrivateSubnet4ID"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet4ID"
         ]
       }
     },
-    "ExternalPrivateSubnet1CIDR": {
-      "Description": "External Private subnet 1 CIDR in Availability Zone 1",
+    "PrivateSubnet1RouteTableID": {
+      "Description": "Private Subnet 1 Route Table ID",
       "Value": {
         "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet1CIDR"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet1RouteTableID"
         ]
       }
     },
-    "ExternalPrivateSubnet1ID": {
-      "Description": "External Private subnet 1 ID in Availability Zone 1",
+    "PrivateSubnet2RouteTableID": {
+      "Description": "Private Subnet 2 Route Table ID",
       "Value": {
         "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet1ID"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet2RouteTableID"
         ]
       }
     },
-    "ExternalPrivateSubnet2CIDR": {
-      "Description": "External Private subnet 2 CIDR in Availability Zone 2",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet2CIDR"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet2ID": {
-      "Description": "External Private subnet 2 ID in Availability Zone 2",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet2ID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet3CIDR": {
+    "PrivateSubnet3RouteTableID": {
       "Condition": "3AZCondition",
-      "Description": "External Private subnet 3 CIDR in Availability Zone 3",
+      "Description": "Private Subnet 3 Route Table ID",
       "Value": {
         "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet3CIDR"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet3RouteTableID"
         ]
       }
     },
-    "ExternalPrivateSubnet3ID": {
-      "Condition": "3AZCondition",
-      "Description": "External Private subnet 3 ID in Availability Zone 3",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet3ID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet4CIDR": {
-      "Condition": "4AZCondition",      
-      "Description": "External Private subnet 4 CIDR in Availability Zone 4",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet4CIDR"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet4ID": {
-      "Condition": "4AZCondition",
-      "Description": "External Private subnet 4 ID in Availability Zone 4",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet4ID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet1RouteTableID": {
-      "Description": "External Private Subnet 1 Route Table ID",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet1RouteTableID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet2RouteTableID": {
-      "Description": "External Private Subnet 2 Route Table ID",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet2RouteTableID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet3RouteTableID": {
-      "Condition": "3AZCondition",
-      "Description": "External Private Subnet 3 Route Table ID",
-      "Value": {
-        "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet3RouteTableID"
-        ]
-      }
-    },
-    "ExternalPrivateSubnet4RouteTableID": {
+    "PrivateSubnet4RouteTableID": {
       "Condition": "4AZCondition",
       "Description": "External Private Subnet 4 Route Table ID",
       "Value": {
         "Fn::GetAtt": [
-          "ExternalPrivateSubnetsNestedStack",
-          "Outputs.ExternalPrivateSubnet4RouteTableID"
+          "PrivateSubnetsNestedStack",
+          "Outputs.PrivateSubnet4RouteTableID"
         ]
       }
     },
@@ -1257,6 +1573,23 @@
     },
     "PublicSubnet1ID": {
       "Description": "Public subnet 1 ID in Availability Zone 1",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PublicSubnet1Id"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::GetAtt": [
           "PublicSubnetsNestedStack",
@@ -1275,6 +1608,23 @@
     },
     "PublicSubnet2ID": {
       "Description": "Public subnet 2 ID in Availability Zone 2",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PublicSubnet2Id"
+            ]
+          ]
+        }
+      }, 
       "Value": {
         "Fn::GetAtt": [
           "PublicSubnetsNestedStack",
@@ -1295,6 +1645,23 @@
     "PublicSubnet3ID": {
       "Condition": "3AZCondition",
       "Description": "Public subnet 3 ID in Availability Zone 3",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PublicSubnet3Id"
+            ]
+          ]
+        }
+      }, 
       "Value": {
         "Fn::GetAtt": [
           "PublicSubnetsNestedStack",
@@ -1315,6 +1682,23 @@
     "PublicSubnet4ID": {
       "Condition": "4AZCondition",
       "Description": "Public subnet 4 ID in Availability Zone 4",
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "",
+            [            
+              {
+                "Ref": "AWS::Region"
+              },
+              "-",
+              {
+                "Ref": "AWS::StackName"
+              },
+              "-PublicSubnet4Id"
+            ]
+          ]
+        }
+      },
       "Value": {
         "Fn::GetAtt": [
           "PublicSubnetsNestedStack",
