@@ -1,0 +1,247 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Template for testing Windows Active Directory domain join.",
+  "Parameters" : {
+    "KeyPairName" : {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+    },
+    "InstanceType" : {
+      "Description" : "Amazon EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.small"
+    },
+    "S3Bucket" : {
+      "Description" : "The S3 bucket that contains the domain credentials & bootstrap script",
+      "Type" : "String"
+    },
+    "S3BootstrapKey": {
+      "Description" : "The S3 object key that contains the bootstrap script",
+      "Type" : "String",
+      "Default" : "windows_domain_join_bootstrap.ps1"
+    },
+    "S3JsonKey": {
+      "Description" : "The S3 object key that contains the domain credentials",
+      "Type" : "String",
+      "Default" : "domain_creds.json"
+    },
+    "SecurityGroupId": {
+      "Description": "Security Group ID that facilitates communication to Active Directory domain",
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "ConstraintDescription": "Must be ID of an existing security group with sufficient permission"
+    },
+    "SubnetId" : {
+      "Description": "Subnet ID to deploy instance to",
+      "Type": "AWS::EC2::Subnet::Id",
+      "ConstraintDescription": "Must be ID of an existing subnet"
+    },
+    "AMI" : {
+      "Description" : "ID of a Microsoft Windows Server AMI",
+      "Type" : "AWS::EC2::Image::Id",
+      "ConstraintDescription": "Must be ID of an existing Microsoft Windows Server AMI"
+    }
+  },
+  "Resources" : {
+    "IAMRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "s3-download",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ]
+                }
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3Bucket"
+                      },
+                      "/",
+                      {
+                        "Ref": "S3BootstrapKey"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "S3Bucket"
+                      },
+                      "/",
+                      {
+                        "Ref": "S3JsonKey"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "IAMInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "IAMRole"
+          }
+        ]
+      }
+    },
+    "WindowsServer": {  
+      "Type" : "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Authentication": {
+          "S3Access": {
+            "type": "S3",
+            "buckets": [
+              {
+                "Ref": "S3Bucket"
+              }
+            ],
+            "roleName": {
+              "Ref": "IAMRole"
+            }
+          }
+        },
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "C:\\Windows\\Temp\\bootstrap.ps1": {
+                "source": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "https://",
+                      { 
+                        "Ref": "S3Bucket"
+                      },
+                      ".s3.amazonaws.com/",
+                      { 
+                        "Ref": "S3BootstrapKey"
+                      }
+                    ]
+                  ]
+                },
+                "authentication": "S3Access"
+              }
+            },
+            "commands": {
+              "01-BootStrap": {
+                "command": {
+                  "Fn::Join" : [
+                    "",
+                    [
+                      "powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile C:\\Windows\\Temp\\bootstrap.ps1 -S3Bucket ",
+                      {
+                        "Ref" : "S3Bucket"
+                      },
+                      " -S3JsonKey ",
+                      {
+                        "Ref" : "S3JsonKey"
+                      }
+                    ]
+                  ]
+                },
+                "waitAfterCompletion" : "forever"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "IamInstanceProfile" : {
+          "Ref" : "IAMRole"
+        },
+        "InstanceType" : { 
+          "Ref" : "InstanceType" 
+        },
+        "ImageId" : {
+          "Ref" : "AMI"
+        },
+        "KeyName" :{
+          "Ref" : "KeyPairName"
+        },
+        "SubnetId" : {
+          "Ref" : "SubnetId"
+        },
+        "SecurityGroupIds" : [
+          {
+            "Ref" : "SecurityGroupId"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",                
+                "cfn-init.exe --region ", 
+                { 
+                  "Ref": "AWS::Region" 
+                },
+                " -v -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r WindowsServer\n",
+                "cfn-signal.exe -e 0 \"",
+                {
+                  "Ref" : "WindowsServerWaitHandle"
+                },
+                "\"\n",
+                "</powershell>"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "WindowsServerWaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "WindowsServer",
+        "Properties" : {
+          "Handle" : {
+            "Ref" : "WindowsServerWaitHandle"
+          },
+        "Timeout" : "600"
+      }
+    },
+    "WindowsServerWaitHandle" : {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}
