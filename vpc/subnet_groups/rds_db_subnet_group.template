@@ -1,28 +1,24 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
-  "Description": "This template creates an RDS DB subnet group for the internal-private network tier",
+  "Description": "This template creates an RDS DB subnet group",
   "Parameters": {
-    "CostCenter": {
-      "Description": "CostCenter tag value",
+    "SubnetAz1Id": {
+      "Description": "subnet ID for subnet 1 located in Availability Zone 1",
       "Type": "String"
     },
-    "InternalPrivateSubnet1ID": {
-      "Description": "subnet ID for internal private subnet 1 located in Availability Zone 1",
+    "SubnetAz2Id": {
+      "Description": "subnet ID for subnet 2 located in Availability Zone 2",
       "Type": "String"
     },
-    "InternalPrivateSubnet2ID": {
-      "Description": "subnet ID for internal private subnet 2 located in Availability Zone 2",
+    "SubnetAz3Id": {
+      "Description": "subnet ID for subnet 3 located in Availability Zone 3",
       "Type": "String"
     },
-    "InternalPrivateSubnet3ID": {
-      "Description": "subnet ID for internal private subnet 3 located in Availability Zone 3",
+    "SubnetAz4Id": {
+      "Description": "subnet ID for subnet 4 located in Availability Zone 4",
       "Type": "String"
     },
-    "InternalPrivateSubnet4ID": {
-      "Description": "subnet ID for internal private subnet 4 located in Availability Zone 4",
-      "Type": "String"
-    },
-    "NumberOfAZs": {
+    "NumberOfAzs": {
       "Description": "Number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.",
       "Type": "String",
       "AllowedValues": [
@@ -31,57 +27,53 @@
         "4"
       ]
     },
-    "Owner": {
-      "Description": "Owner tag value",
-      "Type": "String"
-    },
-    "VPCName": {
+    "VpcName": {
       "Description": "VPC Name",
       "Type": "String"
     }
   },
   "Conditions": {
-    "3AZCondition": {
+    "3AzCondition": {
       "Fn::Or": [
         {
           "Fn::Equals": [
             {
-              "Ref": "NumberOfAZs"
+              "Ref": "NumberOfAzs"
             },
             "3"
           ]
         },
         {
-          "Condition": "4AZCondition"
+          "Condition": "4AzCondition"
         }
       ]
     },
-    "4AZCondition": {
+    "4AzCondition": {
       "Fn::Equals": [
         {
-          "Ref": "NumberOfAZs"
+          "Ref": "NumberOfAzs"
         },
         "4"
       ]
     }
   },
-  "Resources" : {
-    "InternalPrivateSubnetRDSDBSubnetGroup" : {
+  "Resources": {
+    "RDSDBSubnetGroup" : {
       "Type" : "AWS::RDS::DBSubnetGroup",
       "Properties" : {
-        "DBSubnetGroupDescription" : "Allows RDS communication between all internal private subnets",
+        "DBSubnetGroupDescription" : "Allows RDS communication between all subnets",
         "SubnetIds": [
           {
-            "Ref": "InternalPrivateSubnet1ID"
+            "Ref": "SubnetAz1Id"
           },
           {
-            "Ref": "InternalPrivateSubnet2ID"
+            "Ref": "SubnetAz2Id"
           },
           {
             "Fn::If": [
-              "3AZCondition",
+              "3AzCondition",
               {
-                "Ref": "InternalPrivateSubnet3ID"
+                "Ref": "SubnetAz3Id"
               },
               {
                 "Ref": "AWS::NoValue"
@@ -90,9 +82,9 @@
           },
           {
             "Fn::If": [
-              "4AZCondition",
+              "4AzCondition",
               {
-                "Ref": "InternalPrivateSubnet4ID"
+                "Ref": "SubnetAz4Id"
               },
               {
                 "Ref": "AWS::NoValue"
@@ -100,34 +92,26 @@
             ]
           }
         ],
-        "Tags": [
-          {
-            "Key": "CostCenter",
-            "Value": {
-              "Ref": "CostCenter"
-            }
-          },          
+        "Tags": [         
           {
             "Key": "Environment",
             "Value": {
-              "Ref": "VPCName"
+              "Ref": "VpcName"
             }
           },
           {
             "Key": "Name",
             "Value": "rds_db_subnet_group_1"
-          },
-          {
-            "Key": "Network",
-            "Value": "internal"
-          },
-          {
-            "Key": "Owner",
-            "Value": {
-              "Ref": "Owner"
-            }
           }
         ]
+      }
+    }
+  },
+  "Outputs": {
+    "RDSDBSubnetGroup": {
+      "Description": "RDS DB Subnet Group",
+      "Value": {
+        "Ref": "RDSDBSubnetGroup"
       }
     }
   }
