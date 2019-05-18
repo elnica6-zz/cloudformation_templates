@@ -1,0 +1,36 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a multi-region CloudTrail Trail",
+  "Parameters": {
+  	"DisplayName": {
+  		"Description": "SNS Topic Display Name",
+  		"Type": "String"
+  	},
+   	"CloudWatchLogsRoleArn": {
+  		"Description": "CloudWatch Logs Role ARN",
+  		"Type": "String"
+  	},
+  	"S3BucketName": {
+  	  "Description": "S3 Bucket Name",
+  	  "Type": "String"
+  	}
+  },
+  "Resources": {
+    "MultiRegionTrail": {
+	  "Type" : "AWS::SNS::Topic",
+	  "Properties" : {
+	    "DisplayName" : String,
+	    "Subscription" : [ SNS Subscription, ... ],
+	    "TopicName" : String
+}
+    }
+  },
+  "Outputs": {
+  	"MultiRegionTrailName": {
+			"Description": "Name of the Trail",
+			"Value": {
+			  "Ref": "MultiRegionTrail"
+			}
+  	}
+  }
+}

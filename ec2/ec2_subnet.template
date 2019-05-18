@@ -1,0 +1,79 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates an Subnet",
+  "Parameters": {
+  	"AvailabilityZone": {
+  		"Description": "Availibilty Zone to deploy subnet to",
+  		"Type": "String"
+  	},
+  	"CidrBlock": {
+  		"Description": "CIDR block subnet will cover",
+  		"Type": "String"
+  	},
+  	"MapPublicIpOnLaunch": {
+  		"Description": "Assign Public IP to instances launched in subnet",
+  		"Type": "String"
+  	},
+  	"VpcId": {
+  		"Description": "VPC where subnet will reside"
+  	}
+  },
+  "Conditions": {
+  	"MapPublicIpOnLaunchCondition": {
+  		"Fn::Not": [
+  			{
+  				"Fn::Equals": [
+  					{
+  						"Ref": "MapPublicIpOnLaunch"
+  					},
+  					""
+  				]
+  			}
+  		]
+  	}
+  },
+  "Resources": {
+  	"Subnet":{
+	    "Type": "AWS::EC2::Subnet",
+	   	"Properties": {
+	      "AvailabilityZone": {
+	      	"Ref": "AvailabilityZone"
+	      },
+	      "CidrBlock": {
+	      	"Ref": "CidrBlock"
+	      },
+	      "MapPublicIpOnLaunch": {
+	      	"Fn::If": [
+	  				"MapPublicIpOnLaunchCondition",
+						{
+							"Ref": "Path"
+						},
+						{
+	  				"Ref": "AWS::NoValue"
+	  				}
+	  			]
+	      },
+	      "VpcId": {
+	      	"Ref": "VpcId"
+	      }
+	    }
+	  }
+  },
+  "Outputs": {
+  	"SubnetId": {
+  		"Description": "Subnet Resource ID",
+  		"Value": {
+  			"Ref": "Subnet"
+  		}
+  	},
+  	"SubnetAvailabilityZone": {
+  		"Description": "Availability Zone of the subnet",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"Subnet",
+  				"AvailabilityZone"
+  			]
+  		}
+  	}
+  }
+}

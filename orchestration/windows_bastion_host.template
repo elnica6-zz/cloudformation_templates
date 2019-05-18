@@ -1,0 +1,238 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template deploys an EC2 Bastion Host with associated IAM Role, IAM Instance Profile, and Security Group",
+  "Parameters": {
+  	"ImageId": {
+  		"Description": "AMI ID",
+  		"Type": "String",
+  		"Default": "ami-7172b611"
+  	},
+  	"InstanceType": {
+  		"Description": "Instance type",
+  		"Type": "String",
+  		"Default": "t2.small"
+  	},
+  	"KeyName": {
+  		"Description": "EC2 Keypair Name",
+  		"Type": "String",
+  		"Default": "harveybendana"
+  	}
+  },
+  "Mappings" :{
+    "Static": {
+      "All": {
+        "CloudTrailNestedStackS3Key": "/cloudformation_templates/cloudtrail/cloudtrail_multiregion_trail.template",
+        "CloudWatchLogGroupNestedStackS3Key": "/cloudformation_templates/cloudwatch/cloudwatch_logs_log_group.template",
+        "CloudWatchLogRoleNestedStackS3Key": "/cloudformation_templates/iam/iam_cloudtrail_role.template",
+        "S3BucketNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket.template",
+        "S3BucketPolicyNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket_policies/cloudtrail_s3_bucket_policy.template"
+      }
+    }
+  },
+  "Resources": {
+  	"WindowsBastionHostRole": {
+  		"Type": "AWS::IAM::Role",
+  		"Properties": {
+  			"AssumeRolePolicyDocument": {
+  				"Version": "2012-10-17",
+  				"Statement": [
+  					{
+  						"Effect": "Allow",
+  						"Principal": {
+  							"Service": [
+  								"ec2.amazonaws.com"
+  							]
+  						},
+  						"Action": [
+  							"sts:AssumeRole"
+  						]
+  					}
+  				]
+  			},
+  			"ManagedPolicyArns": [
+  				"arn:aws:iam::aws:policy/AmazonRDSFullAccess",
+  				"arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  			],
+  			"RoleName": {
+  				"Ref": "RoleName"
+  			}
+  		}
+  	},
+  	"BastionHostInstanceProfile": {
+  		"Type": "AWS::IAM::InstanceProfile",
+  		"Properties": {
+  			"Roles": [
+  				{
+  					"Ref": "BastionHostRole"
+  				}
+  			]
+  		}
+  	},
+  	"BastionHostSecurityGroup": {
+		  "Type": "AWS::EC2::SecurityGroup",
+		  "Properties": {
+			"GroupDescription": "Enables inbound/outbound Bastion Host related communication",
+		    "SecurityGroupEgress": [
+		    	{
+			   		"CidrIp": "10.0.0.0/16",
+			   		"FromPort": 1521,
+			   		"IpProtocol": "tcp",
+			   		"ToPort": 1521
+		    	},
+		    	{
+			   		"CidrIp": "10.0.0.0/16",
+			   		"FromPort": 3306,
+			   		"IpProtocol": "tcp",
+			   		"ToPort": 3306
+		    	},
+		    	{
+			   		"CidrIp": "10.0.0.0/16",
+			   		"FromPort": 22,
+			   		"IpProtocol": "tcp",
+			   		"ToPort": 22
+		    	},
+		    	{
+			   		"CidrIp" : "0.0.0.0/0",
+			   		"FromPort": 443,
+			   		"IpProtocol": "tcp",
+			   		"ToPort": 443
+		    	},
+		    	{
+			   		"CidrIp": "0.0.0.0/0",
+			   		"FromPort": 80,
+			   		"IpProtocol": "tcp",
+			   		"ToPort": 80
+		    	}
+		    ],
+		    "SecurityGroupIngress": [
+		    	{
+			   		"CidrIp": "0.0.0.0/0",
+			   		"FromPort": 22,
+			   		"IpProtocol": "tcp",
+			   		"ToPort" : 22
+		    	}
+		    ],
+		    "VpcId": {
+		    	"Ref": "VpcId"
+		    }
+		  }
+  	},
+    "BastionHost": {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Authentication": {
+          "S3Access": {
+            "type": "S3",
+            "buckets": [
+              {
+                "Ref": "S3Bucket"
+              }
+            ],
+            "roleName": {
+              "Ref": "BastionHostRole"
+            }
+          }
+        },
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "sql_workbench_j": [
+              "sql_workbench_j"
+            ],
+            "default": [
+              {
+                "ConfigSet": "sql_workbench_j"
+              }
+            ]
+          },
+          "sql_workbench_j": {
+            "files": {
+              "C:\\temp\\Workbench-Build121.zip": {
+                "source": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "https://",
+                      {
+                        "Ref": "S3Bucket"
+                      },
+                      ".s3.amazonaws.com",
+                      {
+                        "Ref": "SqlWorkbenchClientS3Key"
+                      }
+                    ]
+                  ]                 
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "IamInstanceProfile": {
+          "Ref": "BastionHostInstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "BastionHostSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "SubnetId"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "OktankAwsBastionHost"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#cloud-config\n",
+                "repo_update: false\n",
+                "repo_upgrade: none\n",
+                "\n",
+                "runcmd:\n",
+                " - yum clean all\n",
+                " - yum update -y aws-cli\n",
+                " - yum update -y aws-cfn-bootstrap\n",
+                " - yum update -y --security\n",
+                " - /opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -v -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r BastionHost\n"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Outputs": {
+  	"BastionHostPublicDnsName": {
+  		"Description": "Bastion Host Public DNS Name",
+  		"Value": {
+  			"Fn::GetAtt": [
+  				"BastionHost",
+  				"PublicDnsName"
+  			]
+  		}
+  	}
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a network ACL",
+  "Parameters": {
+  	"CidrBlock": {
+  		"Description": "IPv4 CIDR range to allow or deny"
+  	},
+  	"VpcId": {
+  		"Description": "VPC where network ACL will reside"
+  	}
+  },
+  "Resources": {
+  	"NetworkAclEntry":{
+	    "Type": "AWS::EC2::NetworkAclEntry",
+	   	"Properties": {
+	      "CidrBlock" : String,
+	      "Egress" : Boolean,
+	      "NetworkAclId" : String,
+	      "PortRange" : EC2 PortRange,
+	      "Protocol" : Integer,
+	      "RuleAction" : String,
+	      "RuleNumber" : Integer
+	    }
+	  }
+  },
+  "Outputs": {
+  	"NetworkAclId": {
+  		"Description": "Network ACL Resource ID",
+  		"Value": {
+  			"Ref": "NetworkAcl"
+  		}
+  	}
+  }
+}
