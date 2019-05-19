@@ -1,0 +1,27 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a network ACL",
+  "Parameters": {
+  	"VpcId": {
+  		"Description": "VPC where network ACL will reside"
+  	}
+  },
+  "Resources": {
+  	"NetworkAcl":{
+	    "Type": "AWS::EC2::NetworkAcl",
+	   	"Properties": {
+	      "VpcId": {
+	      	"Ref": "VpcId"
+	      }
+	    }
+	  }
+  },
+  "Outputs": {
+  	"NetworkAclId": {
+  		"Description": "Network ACL Resource ID",
+  		"Value": {
+  			"Ref": "NetworkAcl"
+  		}
+  	}
+  }
+}

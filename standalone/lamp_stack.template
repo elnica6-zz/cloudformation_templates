@@ -1,0 +1,466 @@
+{
+  "Description": "This template creates an autoscaling LAMP stack",
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "KeyPairName": {
+      "Description": "Name of an existing Amazon EC2 key pair to enable SSH or RDP access to the instances.",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength": "1",
+      "MaxLength": "255",
+      "AllowedPattern": "[\\x20-\\x7E]*",
+      "ConstraintDescription": "Can contain only ASCII characters."
+    },
+    "InstanceCount": {
+      "Description": "Number of Amazon EC2 instances in an autoscaling group.",
+      "Type": "Number",
+      "Default": "1",
+      "ConstraintDescription": "Must be a number between 1 and 3.",
+      "MinValue": "1",
+      "MaxValue": "3"
+    },
+    "VpcStackName": {
+      "Description": "The name of the VPC CloudFormation stack for cross stack referencing.",
+      "Type": "String"
+    },
+    "Route53HostedZoneName": {
+      "Description": "Name of hosted zone where ELB Alias record should be created",
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+    "RegionOS2AMI": {
+      "us-east-1": {
+        "Linux": "ami-b73b63a0"
+      },
+      "us-west-2": {
+        "Linux": "ami-f173cc91"
+      },
+      "eu-west-1": {
+        "Linux": "ami-9398d3e0"
+      },
+      "ap-southeast-2": {
+        "Linux": "ami-db704cb8"
+      },
+      "ap-southeast-1": {
+        "Linux": "ami-b953f2da"
+      },
+      "ap-south-1": {
+        "Linux": "ami-34b4c05b"
+      },
+      "cn-north-1": {
+        "Linux": "ami-8e6aa0e3"
+      },
+      "us-east-2": {
+        "Linux": "ami-58277d3d"
+      },
+      "us-west-1": {
+        "Linux": "ami-23e8a343"
+      },
+      "eu-central-1": {
+        "Linux": "ami-f9619996"
+      },
+      "ap-northeast-1": {
+        "Linux": "ami-0c11b26d"
+      },
+      "sa-east-1": {
+        "Linux": "ami-97831ffb"
+      },
+      "eu-west-2": {
+        "Linux": "ami-d6cbc1b2"
+      },
+      "ca-central-1": {
+        "Linux": "ami-b48b39d0"
+      },
+      "ap-northeast-2": {
+        "Linux": "ami-983ce8f6"
+      }
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    },
+    "WaitCondition": {
+      "Type": "AWS::CloudFormation::WaitCondition",
+      "Properties": {
+        "Count": {
+          "Ref": "InstanceCount"
+        },
+        "Handle": {
+          "Ref": "WaitHandle"
+        },
+        "Timeout": "1800"
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceRolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "InstanceRole",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "autoscaling:Describe*",
+                "cloudformation:Describe*",
+                "cloudformation:GetTemplate",
+                "s3:Get*"
+              ],
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "InstanceRoleInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      }
+    },
+    "Ec2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP access via port 80 and SSH access.",
+        "VpcId": {
+          "Fn::ImportValue" : {
+            "Fn::Sub" : "${AWS::Region}-${VpcStackName}-VpcId"
+          }
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": {
+              "Fn::ImportValue" : {
+                "Fn::Sub" : "${AWS::Region}-${VpcStackName}-VpcCidr"
+              }
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": {
+              "Fn::ImportValue" : {
+                "Fn::Sub" : "${AWS::Region}-${VpcStackName}-VpcCidr"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ElbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP access to ELB.",
+        "VpcId": {
+          "Fn::ImportValue" : {
+            "Fn::Sub" : "${AWS::Region}-${VpcStackName}-VpcId"
+          }
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ClassicLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": [
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PublicSubnetAz1Id"
+            }
+          },
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PublicSubnetAz2Id"
+            }
+          },
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PublicSubnetAz3Id"
+            }
+          }
+        ],
+        "Listeners": [
+          {
+            "LoadBalancerPort": "80",
+            "InstancePort": "80",
+            "Protocol": "HTTP"
+          }
+        ],
+        "HealthCheck": {
+          "Target": "HTTP:80/",
+          "HealthyThreshold": "2",
+          "UnhealthyThreshold": "5",
+          "Interval": "10",
+          "Timeout": "5"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "ElbSecurityGroup"
+          }
+        ],
+        "CrossZone": true,
+        "Scheme": "internet-facing"
+      }
+    },
+    "LaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "lamp": [
+              "lamp"
+            ],
+            "default": [
+              {
+                "ConfigSet": "lamp"
+              }
+            ]
+          },
+          "lamp": {
+            "packages": {
+              "yum": {
+                "php70": [],
+                "php70-mysqlnd": [],
+                "mysql56": [],
+                "httpd24": []
+              }
+            },
+            "commands": {
+              "02-groupadd-www": {
+                "command": "/usr/sbin/groupadd www"
+              },
+              "03-usermod-apache": {
+                "command": "/usr/sbin/usermod -a -G www apache"
+              },
+              "04-chown-webroot": {
+                "command": "/bin/chown -R root:www /var/www"
+              },
+              "05-chmod-webroot": {
+                "command": "/bin/chmod 2775 /var/www"
+              },
+              "06-file-perms-webroot": {
+                "command": "/bin/find /var/www -type d -exec /bin/chmod 2775 {} \\; && find /var/www -type f -exec /bin/chmod 0664 {} \\;"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "httpd": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "IamInstanceProfile": {
+          "Ref": "InstanceRoleInstanceProfile"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionOS2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "Linux"
+          ]
+        },
+        "InstanceType": "t2.micro",
+        "KeyName": {
+          "Ref": "KeyPairName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "Ec2SecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -ex\n",
+                "yum update -y\n",
+                "yum update -y aws-cfn-bootstrap\n",
+                "yum install -y aws-cli\n",
+                "# Helper function.\n",
+                "function error_exit\n",
+                "{\n",
+                "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref": "WaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "/opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -v -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r LaunchConfiguration\n",
+                "# Install the AWS CodeDeploy Agent.\n",
+                "cd /home/ec2-user/\n",
+                "aws configure set default.s3.signature_version s3v4 || error_exit 'Failed to set aws cli signature to version 4'\n",
+                "aws s3 cp 's3://aws-codedeploy-us-west-2/latest/codedeploy-agent.noarch.rpm' . --region us-west-2 || error_exit 'Failed to download AWS CodeDeploy Agent.'\n",
+                "yum -y install codedeploy-agent.noarch.rpm || error_exit 'Failed to install AWS CodeDeploy Agent.' \n",
+                "# All is well, so signal success.\n",
+                "/opt/aws/bin/cfn-signal -e 0 -r \"AWS CodeDeploy Agent setup complete.\" '",
+                {
+                  "Ref": "WaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "AutoScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfiguration"
+        },
+        "LoadBalancerNames": [
+          {
+            "Ref": "ClassicLoadBalancer"
+          }
+        ],
+        "MaxSize": {
+          "Ref": "InstanceCount"
+        },
+        "MinSize": {
+          "Ref": "InstanceCount"
+        },
+        "DesiredCapacity": {
+          "Ref": "InstanceCount"
+        },
+        "VPCZoneIdentifier": [
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PrivateSubnetAz1Id"
+            }
+          },
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PrivateSubnetAz2Id"
+            }
+          },
+          {
+            "Fn::ImportValue" : {
+              "Fn::Sub" : "${AWS::Region}-${VpcStackName}-PrivateSubnetAz3Id"
+            }
+          }
+        ]
+      }
+    },
+    "Route53ElbAlias": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "ClassicLoadBalancer",
+              "DNSName"
+            ]
+          },
+          "HostedZoneId": {
+            "Fn::GetAtt": [
+              "ClassicLoadBalancer",
+              "CanonicalHostedZoneNameID"
+            ]
+          }
+        },
+        "HostedZoneName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "Route53HostedZoneName"
+              },
+              "."
+            ]
+          ]
+        },
+        "Comment": "Demo Application",
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              "demo.",
+              {
+                "Ref": "Route53HostedZoneName"
+              },
+              "."
+            ]
+          ]
+        },
+        "Type": "A"
+      }
+    }
+  },
+  "Outputs": {
+    "AutoScalingGroupName": {
+      "Value": {
+        "Ref": "AutoScalingGroup"
+      }
+    },
+    "LoadBalancerName": {
+      "Value": {
+        "Ref": "ClassicLoadBalancer"
+      }
+    },
+    "Route53RecordSet": {
+      "Value": {
+        "Ref": "Route53ElbAlias"
+      }
+    }
+  }
+}

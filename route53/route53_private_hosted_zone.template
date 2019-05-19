@@ -1,0 +1,46 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a Route53 Hosted Zone",
+  "Parameters": {
+  	"Name": {
+  	 "Description": "Hosted Zone Name",
+  	 "Type": "String",
+  	 "Default": "myhostedzone.com"
+  	},
+  	"RetentionInDays": {
+  	  "Description": "Log Retention in Days",
+  	  "Type": "Number",
+  	  "Default": 30
+  	}
+  },
+  "Resources": {
+  	"HostedZone": {
+		  "Type": "AWS::Route53::HostedZone",
+		  "Properties": {
+		    "HostedZoneConfig": HostedZoneConfig,
+		    "HostedZoneTags": [  HostedZoneTags, ... ],
+		    "Name": {
+		    	"Ref": "HostedZoneName"
+		    },
+		    "VPCs" : [ HostedZoneVPCs, ... ]
+		  }
+  	}
+  },
+  "Outputs": {
+    "LogGroupResourceName": {
+      "Description": "Log Group Resource Name",
+      "Value": {
+        "Ref": "LogGroup"
+      }
+    },
+  	"LogGroupArn": {
+      "Description": "Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "LogGroup",
+          "Arn"
+        ]
+      }
+  	}
+  }
+}

@@ -1,0 +1,534 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates: a CloudTrail in every region of a given AWS account, an S3 bucket for all Trails to send logs to, a CloudWatch Log Group for all Trails to send logs to, a CloudWatch Logs Subscription Filter to send logs to Lambda, a Lambda Function to process the logs and send to Elasticsearch, and an Elasticsearch cluster for visualization and analytics",
+  "Parameters": {
+    "RepositoryS3BucketName": {
+      "Default": "myrepositorys3bucket",
+      "Description": "S3 bucket acting as code repository",
+      "Type": "String"
+    },
+    "CloudTrailS3BucketName": {
+      "Type": "String",
+      "Description": "S3 bucket name where CloudTrail logs are stored",
+      "Default": "myprivatecloudtrails3bucket"
+    },
+    "CloudWatchLogGroupName": {
+      "Type": "String",
+      "Description": "CloudWatch Log Group Name for CloudTrail",
+      "Default": "CloudTrail/DefaultLogGroup"
+    },
+    "CloudWatchLogRoleManagedPolicyArns": {
+      "Type": "String",
+      "Description": "Managed policy ARN for CloudTrail CloudWatch Log Role",
+      "Default": "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"      
+    },
+    "CloudWatchLogRoleName": {
+      "Type": "String",
+      "Description": "CloudWatch Log Role Name for CloudTrail",
+      "Default": "CloudTrailToCloudWatchLogs"
+    },
+    "ElasticsearchDomainName": {
+      "Default": "es-cloudtrail",
+      "Description": "Elasticsearch Domain Name",
+      "Type": "String"
+    },
+    "LambdaExecutionRoleName": {
+      "Default": "LambdaElasticSearchExecution",
+      "Description": "Lambda Execution Role Name",
+      "Type": "String"
+    },
+    "LambdaFunctionName": {
+      "Default": "CloudTrailLogsToElasticsearch",
+      "Description": "Lambda Function Name",
+      "Type": "String"
+    },
+    "LambdaHandler": {
+      "Default": "index.handler",
+      "Description": "Lambda Handler",
+      "Type": "String"      
+    },
+    "LambdaRuntime": {
+      "Default": "nodejs",
+      "Description": "Lambda Runtime",
+      "Type": "String"      
+    },
+    "LambdaS3Key": {
+      "Default": "cloudtrailelasticsearch.zip",
+      "Description": "Lambda S3 Key",
+      "Type": "String"        
+    },
+    "LambdaTimeout": {
+      "Default": "10",
+      "Description": "Lambda timeout in secounds",
+      "Type": "String"      
+    }
+  },
+  "Mappings" :{
+    "Static": {
+      "All": {
+        "CloudTrailNestedStackS3Key": "/cloudformation_templates/cloudtrail/cloudtrail_multiregion_trail.template",
+        "CloudWatchLogGroupNestedStackS3Key": "/cloudformation_templates/cloudwatch/cloudwatch_logs_log_group.template",
+        "CloudWatchLogRoleNestedStackS3Key": "/cloudformation_templates/iam/iam_cloudtrail_role.template",
+        "ElasticsearchDomainNestedStackS3Key": "/cloudformation_templates/elasticsearch/elasticsearch_multi_az_domain.template",
+        "LambdaExecutionRoleNestedStackS3Key": "/cloudformation_templates/iam/iam_lambda_role.template",
+        "LambdaExecutionRolePolicyNestedStackS3Key": "/cloudformation_templates/iam/iam_policies/lambda_elasticsearch_execution.template",
+        "LambdaFunctionNestedStackS3Key": "/cloudformation_templates/lambda/lambda_function.template",
+        "S3BucketNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket.template",
+        "S3BucketPolicyNestedStackS3Key": "/cloudformation_templates/s3/s3_bucket_policies/cloudtrail_s3_bucket_policy.template"
+      }
+    }
+  },
+  "Resources": {
+    "CloudTrailNestedStack": {
+      "DependsOn": [
+        "CloudWatchLogGroupNestedStack",
+        "CloudWatchLogRoleNestedStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudTrailNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "CloudWatchLogsLogGroupArn": {
+            "Fn::GetAtt": [
+              "CloudWatchLogGroupNestedStack",
+              "Outputs.LogGroupArn"
+            ]
+          },
+          "CloudWatchLogsRoleArn": {
+            "Fn::GetAtt": [
+              "CloudWatchLogRoleNestedStack",
+              "Outputs.RoleArn"
+            ]
+          },
+          "S3BucketName": {
+          "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "CloudWatchLogGroupNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudWatchLogGroupNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "LogGroupName": {
+            "Ref": "CloudWatchLogGroupName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "CloudWatchLogRoleNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudWatchLogRoleNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "ManagedPolicyArns": {
+            "Ref": "CloudWatchLogRoleManagedPolicyArns"
+          },
+          "Path": "",
+          "RoleName": {
+            "Ref": "CloudWatchLogRoleName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "CloudWatchLogSubscriptionFilterNestedStack": {
+      "DependsOn": [
+        "CloudWatchLogGroupNestedStack",
+        "ElasticsearchDomainNestedStack",
+        "LambdaFunctionNestedStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "CloudWatchLogSubscriptionFilterNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "LambdaFunctionNestedStack",
+              "Outputs.FunctionArn"
+            ]
+          },
+          "FilterPattern": "",
+          "LogGroupName": {
+            "Ref": "CloudWatchLogGroupName"
+          },
+          "RoleArn": ""
+        },
+        "TimeoutInMinutes": "5"
+      }      
+    },
+    "ElasticsearchDomainNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "ElasticsearchDomainNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "DomainName": {
+            "Ref": "ElasticsearchDomainName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "LambdaExecutionRoleNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "LambdaExecutionRoleNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "ManagedPolicyArns": "",
+          "Path": "",
+          "RoleName": {
+            "Ref": "LambdaExecutionRoleName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      } 
+    },
+    "LambdaExecutionRolePolicyNestedStack": {
+      "DependsOn": [
+        "LambdaExecutionRoleNestedStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "LambdaExecutionRolePolicyNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "Roles": {
+            "Fn::GetAtt": [
+              "LambdaExecutionRoleNestedStack",
+              "Outputs.RoleResourceName"
+            ]
+          }
+        },
+        "TimeoutInMinutes": "5"
+      } 
+    },
+    "LambdaFunctionNestedStack": {
+      "DependsOn": [
+        "LambdaExecutionRoleNestedStack",
+        "ElasticsearchDomainNestedStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "LambdaFunctionNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "Description": "Cloudtrail Logs to ElasticSearch"
+        },
+        "FunctionName": {
+          "Ref": "LambdaFunctionName"
+        },
+        "Handler": {
+          "Ref": "LambdaHandler"
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaExecutionRoleNestedStack",
+            "Outputs.RoleArn"
+          ]
+        },
+        "Runtime": {
+          "Ref": "LambdaRuntime"
+        },
+        "S3Bucket": {
+          "Ref": "RepositoryS3BucketName"
+        },
+        "S3Key": {
+          "Ref": "LambdaS3Key"
+        },
+        "Timeout": {
+          "Ref": "LambdaTimeout"
+        },
+        "TimeoutInMinutes": "5"
+      } 
+    },
+    "S3BucketNestedStack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3BucketNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "BucketName": {
+            "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    },
+    "S3BucketPolicyNestedStack": {
+      "DependsOn": "S3BucketNestedStack",
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://",
+              {
+                "Ref": "RepositoryS3BucketName"
+              },
+              ".s3.amazonaws.com",
+              {
+                "Fn::FindInMap": [
+                  "Static",
+                  "All",
+                  "S3BucketPolicyNestedStackS3Key"
+                ]
+              }
+            ]
+          ]
+        },
+        "Parameters": {
+          "S3Bucket": {
+            "Ref": "CloudTrailS3BucketName"
+          }
+        },
+        "TimeoutInMinutes": "5"
+      }
+    }
+  },
+  "Outputs": {
+    "CloudTrailS3BucketDomainName": {
+      "Description": "CloudWatch Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "S3BucketNestedStack",
+          "Outputs.S3BucketDomainName"
+        ]
+      }
+    },
+    "CloudTrailResourceName": {
+      "Description": "CloudTrial Resource Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudTrailNestedStack",
+          "Outputs.MultiRegionTrailResourceName"
+        ]
+      }
+    },
+    "CloudWatchLogsLogGroupArn": {
+      "Description": "CloudWatch Log Group ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudWatchLogGroupNestedStack",
+          "Outputs.LogGroupArn"
+        ]
+      }
+    },
+    "CloudWatchLogsRoleArn": {
+      "Description": "CloudWatch Log Role ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudWatchLogRoleNestedStack",
+          "Outputs.RoleArn"
+        ]
+      }
+    },
+    "ElasticsearchDomainResourceName": {
+      "Description": "Elasticsearch Domain Resource Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "ElasticsearchDomainNestedStack",
+          "Outputs.ElasticSearchDomain"
+        ]
+      }
+    },
+    "ElasticsearchDomainArn": {
+      "Description": "Elasticsearch Domain Arn",
+      "Value": {
+        "Fn::GetAtt": [
+          "ElasticsearchDomainNestedStack",
+          "Outputs.DomainArn"
+        ]
+      }
+    },
+    "ElasticsearchDomainEndpoint": {
+      "Description": "Elasticsearch Domain Endpoint",
+      "Value": {
+        "Fn::GetAtt": [
+          "ElasticsearchDomainNestedStack",
+          "Outputs.DomainEndpoint"
+        ]
+      }
+    },
+    "LambdaExecutionRoleArn": {
+      "Description": "Lambda Execution Role ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "LambdaExecutionRoleNestedStack",
+          "Outputs.RoleArn"
+        ]
+      }
+    },
+    "LambdaFunctionResourceName": {
+      "Description": "Lambda Function Resource Name",
+      "Value": {
+        "Fn::GetAtt": [
+          "LambdaFunctionNestedStack",
+          "Outputs.FunctionResourceName"
+        ]
+      }
+    }
+  }
+}

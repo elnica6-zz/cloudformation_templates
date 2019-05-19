@@ -1,0 +1,27 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template creates a route table",
+  "Parameters": {
+  	"VpcId": {
+  		"Description": "VPC where subnet will reside"
+  	}
+  },
+  "Resources": {
+  	"RouteTable":{
+	    "Type": "AWS::EC2::RouteTable",
+	   	"Properties": {
+	      "VpcId": {
+	      	"Ref": "VpcId"
+	      }
+	    }
+	  }
+  },
+  "Outputs": {
+  	"RouteTableId": {
+  		"Description": "Route Table Resource ID",
+  		"Value": {
+  			"Ref": "RouteTable"
+  		}
+  	}
+  }
+}
