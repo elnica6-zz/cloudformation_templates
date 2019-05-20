@@ -7,7 +7,7 @@
       "Type": "String"
     },
     "ElasticsearchVersion": {
-      "Default": "6.5",
+      "Default": "6.0",
       "Description": "Elasticsearch version",
       "Type": "String"
     },
